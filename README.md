@@ -1,2 +1,5 @@
-# micro_ros_pico_dev
-raspberrypi-pico project using micro_ros 
+# Raspberrypi pico with micro ros
+
+---
+
+- build the micro-ros agent for the pico
