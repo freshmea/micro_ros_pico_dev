@@ -41,7 +41,7 @@
         "/home/aa/colcon_ws/install/ros2_aruco_interfaces/include/**",
         "/opt/ros/humble/include/**",
         "/usr/include/**",
-        "/home/aa/micro_ros_ws/src/micro_ros_raspberrypi_pico_sdk/**",
+        "/home/aa/micro_ros_ws/src/micro_ros_pico_dev/**",
         "/home/aa/micro_ros_ws/src/pico-sdk/**"
       ],
       "name": "ROS",
