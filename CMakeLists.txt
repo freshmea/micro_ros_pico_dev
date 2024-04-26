@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.12)
-
 include(/home/aa/micro_ros_ws/src/pico-sdk/external/pico_sdk_import.cmake)
 
 project(pico_micro_ros_example C CXX ASM)

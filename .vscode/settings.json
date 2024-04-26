@@ -1,6 +1,7 @@
 {
     "cmake.configureEnvironment": {
-        "PICO_SDK_PATH": "/home/$USER/micro_ros_ws/src/pico-sdk",
+        "PICO_SDK_PATH": "/home/aa/micro_ros_ws/src/pico-sdk",
+        "PICO_TOOLCHAIN_PATH": "/usr/bin",
     },
     "python.autoComplete.extraPaths": [
         "/home/aa/robot_ws/install/visualization_msgs/local/lib/python3.10/dist-packages",
