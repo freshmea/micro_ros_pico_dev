@@ -27,7 +27,7 @@
         }                                                                                  \
     }
 
-const uint LED_PIN = 25;
+const uint LED_PIN = 2;
 const uint DC_F_PIN = 0;
 const uint DC_B_PIN = 1;
 
@@ -70,7 +70,8 @@ int main()
     // pwm setting
     // gpio_set_function(2, GPIO_FUNC_PWM);
 
-    rcl_node_t node;
+    rcl_node_t node = rcl_get_zero_initialized_node();
+    rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
     rcl_allocator_t allocator = rcl_get_default_allocator();
     rclc_support_t support;
     rclc_executor_t executor = rclc_executor_get_zero_initialized_executor();
@@ -78,10 +79,11 @@ int main()
     // Wait for agent successful ping for 2 minutes.
     const int timeout_ms = 1000;
     const uint8_t attempts = 120;
-
+    RCCHECK(rcl_init_options_init(&init_options, allocator));
+    RCCHECK(rcl_init_options_set_domain_id(&init_options, 15));
     rmw_uros_ping_agent(timeout_ms, attempts);
 
-    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+    RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
 
     RCCHECK(rclc_node_init_default(&node, "pico_node", "", &support));
 
