@@ -1,34 +1,35 @@
 #include <stdio.h>
 
-#include <rcl/rcl.h>
-#include <rcl/error_handling.h>
-#include <rclc/rclc.h>
-#include <rclc/executor.h>
-#include <std_msgs/msg/int32.h>
-#include <rmw_microros/rmw_microros.h>
-
 #include "pico/stdlib.h"
 #include "pico_uart_transports.h"
+#include <rcl/error_handling.h>
+#include <rcl/rcl.h>
+#include <rclc/executor.h>
+#include <rclc/rclc.h>
+#include <rmw_microros/rmw_microros.h>
+#include <std_msgs/msg/int32.h>
 
-#define RCCHECK(fn)                                                                      \
-    {                                                                                    \
-        rcl_ret_t temp_rc = fn;                                                          \
-        if ((temp_rc != RCL_RET_OK))                                                     \
-        {                                                                                \
-            printf("Failed status on line %d: %d. Aborting.\n", __LINE__, (int)temp_rc); \
-            return 1;                                                                    \
-        }                                                                                \
+#define RCCHECK(fn)
+{
+    rcl_ret_t temp_rc = fn;
+    if ((temp_rc != RCL_RET_OK))
+    {
+        printf("Failed status on line %d: %d. Aborting.\n", __LINE__, (int)temp_rc);
+        return 1;
     }
-#define RCSOFTCHECK(fn)                                                                    \
-    {                                                                                      \
-        rcl_ret_t temp_rc = fn;                                                            \
-        if ((temp_rc != RCL_RET_OK))                                                       \
-        {                                                                                  \
-            printf("Failed status on line %d: %d. Continuing.\n", __LINE__, (int)temp_rc); \
-        }                                                                                  \
+}
+#define RCSOFTCHECK(fn)
+{
+    rcl_ret_t temp_rc = fn;
+    if ((temp_rc != RCL_RET_OK))
+    {
+        printf("Failed status on line %d: %d. Continuing.\n", __LINE__, (int)temp_rc);
     }
+}
 
 const uint LED_PIN = 25;
+const uint DC_F_PIN = 0;
+const uint DC_B_PIN = 1;
 
 rcl_subscription_t subscriber;
 std_msgs__msg__Int32 msg_r;
@@ -39,12 +40,15 @@ void subscription_callback(const void *msgin)
     if (msg->data % 2 == 0)
     {
         gpio_put(LED_PIN, 1);
+        gpio_put(DC_F_PIN, 1);
+        gpio_put(DC_B_PIN, 0);
     }
     else
     {
         gpio_put(LED_PIN, 0);
+        gpio_put(DC_F_PIN, 0);
+        gpio_put(DC_B_PIN, 1);
     }
-    msg_r.data = msg_r.data + 3;
 }
 
 int main()
@@ -58,7 +62,13 @@ int main()
         pico_serial_transport_read);
 
     gpio_init(LED_PIN);
+    gpio_init(DC_F_PIN);
+    gpio_init(DC_B_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_set_dir(DC_F_PIN, GPIO_OUT);
+    gpio_set_dir(DC_B_PIN, GPIO_OUT);
+    // pwm setting
+    // gpio_set_function(2, GPIO_FUNC_PWM);
 
     rcl_node_t node;
     rcl_allocator_t allocator = rcl_get_default_allocator();

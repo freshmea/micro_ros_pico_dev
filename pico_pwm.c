@@ -1,11 +1,11 @@
 #include <stdio.h>
 
-#include <rcl/rcl.h>
 #include <rcl/error_handling.h>
-#include <rclc/rclc.h>
+#include <rcl/rcl.h>
 #include <rclc/executor.h>
-#include <std_msgs/msg/int32.h>
+#include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
+#include <std_msgs/msg/int32.h>
 
 #include "pico/stdlib.h"
 #include "pico_uart_transports.h"
@@ -80,7 +80,7 @@ int main()
     const int timeout_ms = 1000;
     const uint8_t attempts = 120;
     RCCHECK(rcl_init_options_init(&init_options, allocator));
-    RCCHECK(rcl_init_options_set_domain_id(&init_options, 20));
+    RCCHECK(rcl_init_options_set_domain_id(&init_options, 15));
     rmw_uros_ping_agent(timeout_ms, attempts);
 
     RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
