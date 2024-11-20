@@ -7,17 +7,17 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-find_library(PICO_SERVO_LIBRARY pico-servo HINTS /usr/local/lib)
-find_library(FIXMATH_LIBRARY fixmath HINTS /usr/local/lib)
+find_library(PICO_SERVO_LIBRARY pico-servo HINTS /usr/bin)
+find_library(FIXMATH_LIBRARY fixmath HINTS /usr/bin)
 link_directories(libmicroros)
 
 add_executable(pico_micro_ros_example pico_micro_ros_example.c pico_uart_transport.c)
 target_link_libraries(pico_micro_ros_example pico_stdlib microros)
 target_include_directories(pico_micro_ros_example PUBLIC libmicroros/include)
 
-add_executable(pico_subscriber pico_subscriber.c pico_uart_transport.c)
-target_link_libraries(pico_subscriber pico_stdlib microros)
-target_include_directories(pico_subscriber PUBLIC libmicroros/include)
+# add_executable(pico_subscriber pico_subscriber.c pico_uart_transport.c)
+# target_link_libraries(pico_subscriber pico_stdlib microros)
+# target_include_directories(pico_subscriber PUBLIC libmicroros/include)
 
 add_executable(pico_pwm pico_pwm.c pico_uart_transport.c)
 target_link_libraries(pico_pwm pico_stdlib microros ${PICO_SERVO_LIBRARY} ${FIXMATH_LIBRARY})
@@ -30,8 +30,8 @@ SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
 # Configure Pico
 pico_enable_stdio_usb(pico_micro_ros_example 1)
 pico_enable_stdio_uart(pico_micro_ros_example 0)
-pico_enable_stdio_usb(pico_subscriber 1)
-pico_enable_stdio_uart(pico_subscriber 0)
+# pico_enable_stdio_usb(pico_subscriber 1)
+# pico_enable_stdio_uart(pico_subscriber 0)
 pico_enable_stdio_usb(pico_pwm 1)
 pico_enable_stdio_uart(pico_pwm 0)
 add_compile_definitions(PICO_UART_ENABLE_CRLF_SUPPORT=0)
@@ -40,5 +40,5 @@ add_compile_definitions(PICO_STDIO_DEFAULT_CRLF=0)
 
 # Generate UF2
 pico_add_extra_outputs(pico_micro_ros_example)
-pico_add_extra_outputs(pico_subscriber)
+# pico_add_extra_outputs(pico_subscriber)
 pico_add_extra_outputs(pico_pwm)
