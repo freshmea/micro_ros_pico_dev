@@ -86,8 +86,7 @@ int main()
         &service,
         &node,
         ROSIDL_GET_SRV_TYPE_SUPPORT(std_srvs, srv, SetBool),
-        "led_service",
-        service_callback));
+        "led_service"));
 
     rclc_executor_init(&executor, &support.context, 1, &allocator);
     std_srvs__srv__SetBool_Response res;
