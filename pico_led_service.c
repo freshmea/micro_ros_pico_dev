@@ -43,6 +43,7 @@ void service_callback(const void *req, void *res)
         message.size = strlen(message.data);
         response->message = message;
         response->success = true;
+        led_on = request->data;
     }
     else
     {
