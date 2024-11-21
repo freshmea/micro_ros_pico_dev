@@ -92,6 +92,7 @@
         "types.h": "c",
         "config.h": "c",
         "stdint.h": "c",
-        "pwm.h": "c"
+        "pwm.h": "c",
+        "string.h": "c"
     },
 }

@@ -16,7 +16,7 @@ target_link_libraries(pico_micro_ros_example pico_stdlib microros)
 target_include_directories(pico_micro_ros_example PUBLIC libmicroros/include)
 
 add_executable(pico_led_service pico_led_service.c pico_uart_transport.c)
-target_link_libraries(pico_led_service pico_stdlib microros std_srvs)
+target_link_libraries(pico_led_service pico_stdlib microros)
 target_include_directories(pico_led_service PUBLIC libmicroros/include)
 
 add_executable(pico_dc_motor pico_dc_motor.c pico_uart_transport.c)

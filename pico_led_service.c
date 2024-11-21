@@ -3,6 +3,7 @@
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
+#include <string.h>
 
 #include "pico/stdlib.h"
 #include "pico_uart_transports.h"
@@ -28,10 +29,6 @@
 
 const uint LED_PIN = 2;
 
-rcl_publisher_t publisher;
-rcl_subscription_t subscriber;
-std_msgs__msg__Int32 msg;
-std_msgs__msg__Int32 msg_recieved;
 bool led_on = false;
 
 void service_callback(const void *req, void *res)
@@ -41,12 +38,18 @@ void service_callback(const void *req, void *res)
     if (led_on != request->data)
     {
         gpio_put(LED_PIN, request->data);
-        response->message = "request success";
+        rosidl_runtime_c__String message;
+        message.data = "request successful";
+        message.size = strlen(message.data);
+        response->message = message;
         response->success = true;
     }
     else
     {
-        response->message = "request failed";
+        rosidl_runtime_c__String message;
+        message.data = "request failed";
+        message.size = strlen(message.data);
+        response->message = message;
         response->success = false;
     }
 }
@@ -95,6 +98,6 @@ int main()
 
     rclc_executor_spin(&executor);
 
-    RCCHECK(rcl_subscription_fini(&subscriber, &node));
+    RCCHECK(rcl_service_fini(&service, &node));
     RCCHECK(rcl_node_fini(&node));
 }
