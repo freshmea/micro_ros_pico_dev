@@ -91,6 +91,7 @@
         "pico.h": "c",
         "types.h": "c",
         "config.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "pwm.h": "c"
     },
 }

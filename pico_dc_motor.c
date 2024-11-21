@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "hardware/pwm.h"
 #include "pico/stdlib.h"
 #include "pico_uart_transports.h"
 #include <rcl/error_handling.h>
@@ -37,17 +38,17 @@ std_msgs__msg__Int32 msg_r;
 void subscription_callback(const void *msgin)
 {
     const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msgin;
-    if (msg->data % 2 == 0)
+    if (msg->data > 0)
     {
         gpio_put(LED_PIN, 1);
-        gpio_put(DC_F_PIN, 1);
-        gpio_put(DC_B_PIN, 0);
+        pwm_set_gpio_level(DC_F_PIN, msg->data);
+        pwm_set_gpio_level(DC_B_PIN, 0);
     }
     else
     {
         gpio_put(LED_PIN, 0);
-        gpio_put(DC_F_PIN, 0);
-        gpio_put(DC_B_PIN, 1);
+        pwm_set_gpio_level(DC_B_PIN, -msg->data);
+        pwm_set_gpio_level(DC_F_PIN, 0);
     }
 }
 
@@ -65,10 +66,20 @@ int main()
     gpio_init(DC_F_PIN);
     gpio_init(DC_B_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
-    gpio_set_dir(DC_F_PIN, GPIO_OUT);
-    gpio_set_dir(DC_B_PIN, GPIO_OUT);
+    // gpio_set_dir(DC_F_PIN, GPIO_OUT);
+    // gpio_set_dir(DC_B_PIN, GPIO_OUT);
     // pwm setting
-    // gpio_set_function(2, GPIO_FUNC_PWM);
+    gpio_set_function(DC_F_PIN, GPIO_FUNC_PWM);
+    gpio_set_function(DC_B_PIN, GPIO_FUNC_PWM);
+    uint slice_num_f = pwm_gpio_to_slice_num(DC_F_PIN);
+    uint slice_num_b = pwm_gpio_to_slice_num(DC_B_PIN);
+    pwm_config config_f = pwm_get_default_config();
+    pwm_config config_b = pwm_get_default_config();
+    pwm_init(slice_num_f, &config_f, true);
+    pwm_init(slice_num_b, &config_b, true);
+
+    pwm_set_gpio_level(DC_F_PIN, 0);
+    pwm_set_gpio_level(DC_B_PIN, 0);
 
     rcl_node_t node = rcl_get_zero_initialized_node();
     rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
