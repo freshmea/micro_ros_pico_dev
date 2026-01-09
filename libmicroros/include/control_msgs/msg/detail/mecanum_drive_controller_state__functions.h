@@ -2,6 +2,9 @@
 // with input from control_msgs:msg/MecanumDriveControllerState.idl
 // generated code does not contain a copyright notice
 
+// IWYU pragma: private, include "control_msgs/msg/mecanum_drive_controller_state.h"
+
+
 #ifndef CONTROL_MSGS__MSG__DETAIL__MECANUM_DRIVE_CONTROLLER_STATE__FUNCTIONS_H_
 #define CONTROL_MSGS__MSG__DETAIL__MECANUM_DRIVE_CONTROLLER_STATE__FUNCTIONS_H_
 
@@ -59,7 +62,7 @@ control_msgs__msg__MecanumDriveControllerState__fini(control_msgs__msg__MecanumD
  */
 ROSIDL_GENERATOR_C_PUBLIC_control_msgs
 control_msgs__msg__MecanumDriveControllerState *
-control_msgs__msg__MecanumDriveControllerState__create();
+control_msgs__msg__MecanumDriveControllerState__create(void);
 
 /// Destroy msg/MecanumDriveControllerState message.
 /**

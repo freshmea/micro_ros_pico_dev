@@ -14,7 +14,7 @@
 
 /** \mainpage rmw: ROS Middleware Abstraction Interface
  *
- * `rmw` defines an interface of middleware primitives that are used by the higher level ROS API's.
+ * `rmw` defines an interface of middleware primitives that are used by the higher level ROS APIs.
  * It consists of these main components:
  *
  * - Initialization and Shutdown:
@@ -198,17 +198,6 @@ RMW_PUBLIC
 RMW_WARN_UNUSED
 rmw_ret_t
 rmw_destroy_node(rmw_node_t * node);
-
-/**
- * \deprecated `rmw_node_assert_liveliness` implementation was removed.
- *   If manual liveliness assertion is needed, use MANUAL_BY_TOPIC.
- */
-RMW_PUBLIC
-RCUTILS_DEPRECATED_WITH_MSG(
-  "rmw_node_assert_liveliness implementation was removed."
-  " If manual liveliness assertion is needed, use MANUAL_BY_TOPIC.")
-rmw_ret_t
-rmw_node_assert_liveliness(const rmw_node_t * node);
 
 /// Return a guard condition which is triggered when the ROS graph changes.
 /**
@@ -428,7 +417,7 @@ rmw_destroy_publisher(rmw_node_t * node, rmw_publisher_t * publisher);
  * \return `RMW_RET_INCORRECT_RMW_IMPLEMENTATION` if `publisher` implementation identifier
  *   does not match this implementation, or
  * \return `RMW_RET_UNSUPPORTED` if the implementation does not support ROS message loaning, or
- * \return `RMW_RET_ERROR` if an unexpected error occured.
+ * \return `RMW_RET_ERROR` if an unexpected error occurred.
  */
 RMW_PUBLIC
 RMW_WARN_UNUSED

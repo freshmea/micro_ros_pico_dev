@@ -2,6 +2,9 @@
 // with input from control_msgs:msg/MecanumDriveControllerState.idl
 // generated code does not contain a copyright notice
 
+// IWYU pragma: private, include "control_msgs/msg/mecanum_drive_controller_state.h"
+
+
 #ifndef CONTROL_MSGS__MSG__DETAIL__MECANUM_DRIVE_CONTROLLER_STATE__TYPE_SUPPORT_H_
 #define CONTROL_MSGS__MSG__DETAIL__MECANUM_DRIVE_CONTROLLER_STATE__TYPE_SUPPORT_H_
 
@@ -24,7 +27,7 @@ ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(
   control_msgs,
   msg,
   MecanumDriveControllerState
-)();
+)(void);
 
 #ifdef __cplusplus
 }

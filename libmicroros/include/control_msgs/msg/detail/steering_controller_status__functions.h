@@ -2,6 +2,9 @@
 // with input from control_msgs:msg/SteeringControllerStatus.idl
 // generated code does not contain a copyright notice
 
+// IWYU pragma: private, include "control_msgs/msg/steering_controller_status.h"
+
+
 #ifndef CONTROL_MSGS__MSG__DETAIL__STEERING_CONTROLLER_STATUS__FUNCTIONS_H_
 #define CONTROL_MSGS__MSG__DETAIL__STEERING_CONTROLLER_STATUS__FUNCTIONS_H_
 
@@ -59,7 +62,7 @@ control_msgs__msg__SteeringControllerStatus__fini(control_msgs__msg__SteeringCon
  */
 ROSIDL_GENERATOR_C_PUBLIC_control_msgs
 control_msgs__msg__SteeringControllerStatus *
-control_msgs__msg__SteeringControllerStatus__create();
+control_msgs__msg__SteeringControllerStatus__create(void);
 
 /// Destroy msg/SteeringControllerStatus message.
 /**

@@ -2,6 +2,9 @@
 // with input from control_msgs:msg/JointControllerState.idl
 // generated code does not contain a copyright notice
 
+// IWYU pragma: private, include "control_msgs/msg/joint_controller_state.h"
+
+
 #ifndef CONTROL_MSGS__MSG__DETAIL__JOINT_CONTROLLER_STATE__STRUCT_H_
 #define CONTROL_MSGS__MSG__DETAIL__JOINT_CONTROLLER_STATE__STRUCT_H_
 
@@ -26,6 +29,7 @@ extern "C"
  */
 typedef struct control_msgs__msg__JointControllerState
 {
+  /// It is deprecated as of Humble in favor of SingleDOFStateStamped.msg
   /// Header timestamp should be update time of controller state
   std_msgs__msg__Header header;
   /// The set point, that is, desired state.

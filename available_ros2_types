@@ -11,6 +11,7 @@ composition_interfaces/ListNodes.srv
 composition_interfaces/LoadNode.srv
 composition_interfaces/UnloadNode.srv
 control_msgs/AdmittanceControllerState.msg
+control_msgs/DynamicInterfaceGroupValues.msg
 control_msgs/DynamicJointState.msg
 control_msgs/FollowJointTrajectory.action
 control_msgs/GripperCommand.action
@@ -23,10 +24,15 @@ control_msgs/JointTolerance.msg
 control_msgs/JointTrajectory.action
 control_msgs/JointTrajectoryControllerState.msg
 control_msgs/MecanumDriveControllerState.msg
+control_msgs/MultiDOFCommand.msg
+control_msgs/MultiDOFStateStamped.msg
+control_msgs/ParallelGripperCommand.action
 control_msgs/PidState.msg
 control_msgs/PointHead.action
 control_msgs/QueryCalibrationState.srv
 control_msgs/QueryTrajectoryState.srv
+control_msgs/SingleDOFState.msg
+control_msgs/SingleDOFStateStamped.msg
 control_msgs/SingleJointPosition.action
 control_msgs/SteeringControllerStatus.msg
 data/Test.action
@@ -80,6 +86,8 @@ geometry_msgs/Point.msg
 geometry_msgs/Point32.msg
 geometry_msgs/PointStamped.msg
 geometry_msgs/Polygon.msg
+geometry_msgs/PolygonInstance.msg
+geometry_msgs/PolygonInstanceStamped.msg
 geometry_msgs/PolygonStamped.msg
 geometry_msgs/Pose.msg
 geometry_msgs/Pose2D.msg
@@ -97,6 +105,7 @@ geometry_msgs/TwistWithCovariance.msg
 geometry_msgs/TwistWithCovarianceStamped.msg
 geometry_msgs/Vector3.msg
 geometry_msgs/Vector3Stamped.msg
+geometry_msgs/VelocityStamped.msg
 geometry_msgs/Wrench.msg
 geometry_msgs/WrenchStamped.msg
 lifecycle_msgs/ChangeState.srv
@@ -109,6 +118,7 @@ lifecycle_msgs/TransitionDescription.msg
 lifecycle_msgs/TransitionEvent.msg
 nav_msgs/GetMap.srv
 nav_msgs/GetPlan.srv
+nav_msgs/Goals.msg
 nav_msgs/GridCells.msg
 nav_msgs/LoadMap.srv
 nav_msgs/MapMetaData.msg
@@ -138,6 +148,7 @@ rcl_interfaces/SetParameters.srv
 rcl_interfaces/SetParametersAtomically.srv
 rcl_interfaces/SetParametersResult.msg
 rosgraph_msgs/Clock.msg
+rosidl_generator_tests/SmallConstant.msg
 sensor_msgs/BatteryState.msg
 sensor_msgs/CameraInfo.msg
 sensor_msgs/ChannelFloat32.msg

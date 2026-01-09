@@ -2,6 +2,9 @@
 // with input from control_msgs:msg/AdmittanceControllerState.idl
 // generated code does not contain a copyright notice
 
+// IWYU pragma: private, include "control_msgs/msg/admittance_controller_state.h"
+
+
 #ifndef CONTROL_MSGS__MSG__DETAIL__ADMITTANCE_CONTROLLER_STATE__FUNCTIONS_H_
 #define CONTROL_MSGS__MSG__DETAIL__ADMITTANCE_CONTROLLER_STATE__FUNCTIONS_H_
 
@@ -59,7 +62,7 @@ control_msgs__msg__AdmittanceControllerState__fini(control_msgs__msg__Admittance
  */
 ROSIDL_GENERATOR_C_PUBLIC_control_msgs
 control_msgs__msg__AdmittanceControllerState *
-control_msgs__msg__AdmittanceControllerState__create();
+control_msgs__msg__AdmittanceControllerState__create(void);
 
 /// Destroy msg/AdmittanceControllerState message.
 /**

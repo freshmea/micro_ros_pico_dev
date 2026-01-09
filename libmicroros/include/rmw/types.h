@@ -163,12 +163,7 @@ typedef struct RMW_PUBLIC_TYPE rmw_subscription_options_s
    * remote nodes, especially to avoid "double delivery" when both intra- and
    * inter- process communication is taking place.
    *
-   * \todo(wjwwood): nail this down when participant mapping is sorted out.
-   *   See: https://github.com/ros2/design/pull/250
-   *
-   * The definition of local is somewhat vague at the moment.
-   * Right now it means local to the node, and that definition works best, but
-   * may become more complicated when/if participants map to a context instead.
+   * The definition of local means that in the same context.
    */
   bool ignore_local_publications;
 
@@ -464,7 +459,7 @@ typedef enum RMW_PUBLIC_TYPE rmw_qos_durability_policy_e
   "RMW_QOS_POLICY_LIVELINESS_MANUAL_BY_NODE is deprecated. " \
   "Use RMW_QOS_POLICY_LIVELINESS_MANUAL_BY_TOPIC if manually asserted liveliness is needed."
 
-#ifndef _WIN32
+#ifndef _MSC_VER
 # define RMW_DECLARE_DEPRECATED(name, msg) name __attribute__((deprecated(msg)))
 #else
 # define RMW_DECLARE_DEPRECATED(name, msg) name __pragma(deprecated(name))
@@ -583,14 +578,14 @@ typedef struct RMW_PUBLIC_TYPE rmw_qos_profile_s
   enum rmw_qos_durability_policy_e durability;
   /// The period at which messages are expected to be sent/received
   /**
-    * RMW_DURATION_UNSPEFICIED will use the RMW implementation's default value,
+    * RMW_DURATION_UNSPECIFIED will use the RMW implementation's default value,
     *   which may or may not be infinite.
     * RMW_DURATION_INFINITE explicitly states that messages never miss a deadline expectation.
     */
   struct rmw_time_s deadline;
   /// The age at which messages are considered expired and no longer valid
   /**
-    * RMW_DURATION_UNSPEFICIED will use the RMW implementation's default value,
+    * RMW_DURATION_UNSPECIFIED will use the RMW implementation's default value,
     *   which may or may not be infinite.
     * RMW_DURATION_INFINITE explicitly states that messages do not expire.
     */
@@ -599,7 +594,7 @@ typedef struct RMW_PUBLIC_TYPE rmw_qos_profile_s
   enum rmw_qos_liveliness_policy_e liveliness;
   /// The time within which the RMW node or publisher must show that it is alive
   /**
-    * RMW_DURATION_UNSPEFICIED will use the RMW implementation's default value,
+    * RMW_DURATION_UNSPECIFIED will use the RMW implementation's default value,
     *   which may or may not be infinite.
     * RMW_DURATION_INFINITE explicitly states that liveliness is not enforced.
     */
