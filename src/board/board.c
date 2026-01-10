@@ -1,5 +1,6 @@
 #include "board.h"
 #include "pico/cyw43_arch.h"
+#include "project_config.h"
 #include <stdio.h>
 
 void board_init(void)
@@ -7,18 +8,19 @@ void board_init(void)
     // USB serial initialization (for debugging)
     stdio_init_all();
 
-    // Wait for USB connection (max 5 seconds)
+    // Wait for USB connection (configurable timeout)
     printf("Waiting for USB connection...\n");
-    for (int i = 0; i < 50; i++)
+    int max_checks = USB_CONNECT_WAIT_MS / USB_CONNECT_CHECK_INTERVAL_MS;
+    for (int i = 0; i < max_checks; i++)
     {
-        sleep_ms(100);
+        sleep_ms(USB_CONNECT_CHECK_INTERVAL_MS);
         if (stdio_usb_connected())
         {
             break;
         }
     }
 
-    printf("\n=== Pico 2W Micro-ROS WiFi Servo Control ===\n");
+    printf("\n=== Bindbot - Pico 2W Micro-ROS Servo Control ===\n");
     printf("Starting board initialization...\n");
 
     // GPIO initialization (before WiFi initialization)
@@ -62,12 +64,12 @@ void board_set_onboard_led(uint8_t state)
 
 void board_blink_error(void)
 {
-    printf("GP0 will blink to indicate error\n");
+    printf("GP%d will blink to indicate error\n", WIFI_STATUS_PIN);
     while (true)
     {
         gpio_put(WIFI_STATUS_PIN, 1);
-        sleep_ms(200);
+        sleep_ms(ERROR_BLINK_MS);
         gpio_put(WIFI_STATUS_PIN, 0);
-        sleep_ms(200);
+        sleep_ms(ERROR_BLINK_MS);
     }
 }

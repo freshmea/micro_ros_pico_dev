@@ -1,5 +1,6 @@
 #include "servo_ctrl.h"
 #include "pico_servo.h"
+#include "project_config.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -22,9 +23,9 @@ int servo_ctrl_init(uint pin)
     }
     printf("Servo clock configured\n");
 
-    // PWM period 50Hz (20ms), duty cycle 1ms to 2ms (1000-2000us)
-    servo_set_bounds(1000, 2000);
-    printf("Servo bounds set: 1000-2000 microseconds\n");
+    // PWM settings from project_config.h
+    servo_set_bounds(SERVO_MIN_US, SERVO_MAX_US);
+    printf("Servo bounds set: %d-%d microseconds\n", SERVO_MIN_US, SERVO_MAX_US);
 
     ret = servo_attach(pin);
     if (ret != 0)
@@ -34,15 +35,15 @@ int servo_ctrl_init(uint pin)
     }
     printf("Servo attached to GP%d\n", pin);
 
-    // Move to initial position (90 degrees)
+    // Move to initial position from config
     sleep_ms(100);
-    ret = servo_move_to(pin, 90);
+    ret = servo_move_to(pin, SERVO_INIT_ANGLE);
     if (ret != 0)
     {
         printf("ERROR: Initial servo_move_to failed\n");
         return ret;
     }
-    printf("Servo moved to initial position (90 degrees)\n");
+    printf("Servo moved to initial position (%d degrees)\n", SERVO_INIT_ANGLE);
 
     sleep_ms(500); // Give servo time to reach initial position
 

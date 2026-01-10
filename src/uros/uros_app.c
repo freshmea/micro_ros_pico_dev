@@ -1,5 +1,6 @@
 #include "uros_app.h"
 #include "board.h"
+#include "project_config.h"
 #include "servo_ctrl.h"
 
 #include <rcl/error_handling.h>
@@ -47,7 +48,7 @@ static void subscription_callback(const void *msgin)
     servo_ctrl_move_to_angle(SERVO_PIN, msg->data);
 
     // Short delay then turn off GP1
-    sleep_ms(50);
+    sleep_ms(MSG_STATUS_PULSE_MS);
     board_set_msg_status(0);
 }
 
@@ -64,9 +65,9 @@ int uros_app_init(void)
 
     allocator = rcl_get_default_allocator();
 
-    // Wait for agent successful ping for 2 minutes
-    const int timeout_ms = 1000;
-    const uint8_t attempts = 120;
+    // Wait for agent successful ping (settings from project_config.h)
+    const int timeout_ms = AGENT_PING_TIMEOUT_MS;
+    const uint8_t attempts = AGENT_PING_ATTEMPTS;
 
     printf("Pinging micro-ROS agent (timeout: %d ms, attempts: %d)...\n", timeout_ms, attempts);
     rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
@@ -85,15 +86,15 @@ int uros_app_init(void)
     printf("Initializing RCL support...\n");
     RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
-    printf("Creating node 'pico_node'...\n");
-    RCCHECK(rclc_node_init_default(&node, "pico_node", "", &support));
+    printf("Creating node '%s'...\n", ROS_NODE_NAME);
+    RCCHECK(rclc_node_init_default(&node, ROS_NODE_NAME, ROS_NAMESPACE, &support));
 
-    printf("Creating subscriber 'pico_subscriber'...\n");
+    printf("Creating subscriber '%s'...\n", ROS_TOPIC_SUBSCRIBE);
     RCCHECK(rclc_subscription_init_default(
         &subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-        "pico_subscriber"));
+        ROS_TOPIC_SUBSCRIBE));
 
     printf("Initializing executor...\n");
     RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
@@ -108,7 +109,7 @@ int uros_app_init(void)
     board_set_onboard_led(1);
 
     printf("\n=== System Ready ===\n");
-    printf("Waiting for messages on 'pico_subscriber' topic...\n\n");
+    printf("Waiting for messages on '%s' topic...\n\n", ROS_TOPIC_SUBSCRIBE);
 
     msg_r.data = 0;
     return 0;
@@ -118,7 +119,7 @@ void uros_app_run(void)
 {
     while (true)
     {
-        RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
+        RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(EXECUTOR_SPIN_TIMEOUT_MS)));
     }
 }
 

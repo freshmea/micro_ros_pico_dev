@@ -1,0 +1,82 @@
+/**
+ * @file project_config.h
+ * @brief Bindbot 프로젝트 전역 설정
+ *
+ * 이 파일에서 WiFi, micro-ROS, GPIO, 서보 설정 등 모든 환경 변수를 관리합니다.
+ */
+
+#ifndef PROJECT_CONFIG_H
+#define PROJECT_CONFIG_H
+
+// ============================================================================
+// WiFi 설정
+// ============================================================================
+#define WIFI_SSID "bindsoft_805_2.4g"          // WiFi SSID
+#define WIFI_PASSWORD "bindsoft805"            // WiFi 비밀번호
+#define WIFI_AUTH_MODE CYW43_AUTH_WPA2_AES_PSK // WiFi 인증 모드
+#define WIFI_CONNECT_TIMEOUT_MS 30000          // WiFi 연결 타임아웃 (ms)
+
+// ============================================================================
+// micro-ROS 에이전트 설정
+// ============================================================================
+#define AGENT_IP "192.168.219.74"  // micro-ROS agent IP 주소
+#define AGENT_PORT 8888            // micro-ROS agent 포트
+#define AGENT_PING_TIMEOUT_MS 1000 // Agent ping 타임아웃 (ms)
+#define AGENT_PING_ATTEMPTS 120    // Agent ping 시도 횟수
+
+// ============================================================================
+// ROS2 토픽/노드 설정
+// ============================================================================
+#define ROS_NODE_NAME "pico_node"             // ROS2 노드 이름
+#define ROS_NAMESPACE ""                      // ROS2 네임스페이스
+#define ROS_TOPIC_SUBSCRIBE "pico_subscriber" // 구독할 토픽 이름
+
+// ============================================================================
+// GPIO 핀 할당
+// ============================================================================
+#define WIFI_STATUS_PIN 0 // GP0: WiFi 연결 상태 LED
+#define MSG_STATUS_PIN 1  // GP1: 메시지 수신 표시 LED
+#define SERVO_PIN 2       // GP2: 서보 제어 PWM 출력
+#define PWM_LED_PIN 3     // GP3: 짝수/홀수 표시 LED
+
+// ============================================================================
+// 서보 모터 설정
+// ============================================================================
+#define SERVO_PWM_FREQ_HZ 50 // 서보 PWM 주파수 (Hz)
+#define SERVO_PWM_WRAP 20000 // PWM wrap 값 (20ms 주기)
+#define SERVO_MIN_US 1000    // 최소 펄스 폭 (us) - 0도
+#define SERVO_MAX_US 2000    // 최대 펄스 폭 (us) - 180도
+#define SERVO_INIT_ANGLE 90  // 초기 서보 각도
+
+// ============================================================================
+// LED 상태 표시 설정
+// ============================================================================
+#define MSG_STATUS_PULSE_MS 50 // 메시지 수신 시 LED 켜짐 시간 (ms)
+#define ERROR_BLINK_MS 200     // 에러 발생 시 깜박임 주기 (ms)
+
+// ============================================================================
+// USB 시리얼 설정
+// ============================================================================
+#define USB_CONNECT_WAIT_MS 5000          // USB 연결 대기 시간 (ms)
+#define USB_CONNECT_CHECK_INTERVAL_MS 100 // USB 연결 체크 간격 (ms)
+
+// ============================================================================
+// 디버그 설정
+// ============================================================================
+#define DEBUG_PRINT_ENABLED 1 // 디버그 출력 활성화 (0: 비활성화, 1: 활성화)
+
+#if DEBUG_PRINT_ENABLED
+#define DEBUG_PRINTF(...) printf(__VA_ARGS__)
+#else
+#define DEBUG_PRINTF(...) \
+    do                    \
+    {                     \
+    } while (0)
+#endif
+
+// ============================================================================
+// 시스템 설정
+// ============================================================================
+#define EXECUTOR_SPIN_TIMEOUT_MS 100 // Executor spin 타임아웃 (ms)
+
+#endif // PROJECT_CONFIG_H

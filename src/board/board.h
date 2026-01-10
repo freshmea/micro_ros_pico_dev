@@ -2,13 +2,11 @@
 #define BOARD_H
 
 #include "pico/stdlib.h"
+#include "project_config.h"
 
-// Pin definitions
+// Pin definitions (from project_config.h)
 #define LED_PIN CYW43_WL_GPIO_LED_PIN // Pico 2W onboard LED
-#define WIFI_STATUS_PIN 0             // GP0: WiFi connection status
-#define MSG_STATUS_PIN 1              // GP1: Message transmission status
-#define SERVO_PIN 2                   // GP2: Servo control
-#define PWM_LED_PIN 3                 // GP3: PWM LED (even/odd indicator)
+// WIFI_STATUS_PIN, MSG_STATUS_PIN, SERVO_PIN, PWM_LED_PIN은 project_config.h에 정의됨
 
 /**
  * @brief Initialize all board peripherals

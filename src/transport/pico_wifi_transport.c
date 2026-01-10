@@ -7,9 +7,11 @@
 
 #include "lwip/pbuf.h"
 #include "lwip/udp.h"
+#include "project_config.h"
 
-#define AGENT_IP "192.168.219.74" // PC의 실제 IP 주소로 변경
-#define AGENT_PORT 8888
+// Agent IP and Port are defined in project_config.h
+// #define AGENT_IP "192.168.219.74"
+// #define AGENT_PORT 8888
 
 typedef struct
 {
@@ -68,15 +70,15 @@ bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
     cyw43_arch_enable_sta_mode();
     printf("Station mode enabled\n");
 
-    // WiFi 연결 (SSID와 비밀번호를 환경에 맞게 수정)
-    printf("Connecting to WiFi SSID: 'bindsoft_805_2.4g'...\n");
-    printf("This may take up to 30 seconds...\n");
+    // WiFi 연결 (설정은 project_config.h에서 수정)
+    printf("Connecting to WiFi SSID: '%s'...\n", WIFI_SSID);
+    printf("This may take up to %d seconds...\n", WIFI_CONNECT_TIMEOUT_MS / 1000);
 
-    if (cyw43_arch_wifi_connect_timeout_ms("bindsoft_805_2.4g", "bindsoft805", CYW43_AUTH_WPA2_AES_PSK, 30000))
+    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, WIFI_AUTH_MODE, WIFI_CONNECT_TIMEOUT_MS))
     {
         printf("ERROR: Failed to connect to WiFi\n");
         printf("Please check:\n");
-        printf("  - SSID and password are correct\n");
+        printf("  - SSID and password are correct in project_config.h\n");
         printf("  - WiFi router is powered on\n");
         printf("  - Pico is in range of WiFi\n");
         return false;
