@@ -11,24 +11,7 @@
 #include "pico/stdlib.h"
 #include "pico_servo.h"
 #include "pico_wifi_transport.h"
-
-#define RCCHECK(fn)                                                                      \
-    {                                                                                    \
-        rcl_ret_t temp_rc = fn;                                                          \
-        if ((temp_rc != RCL_RET_OK))                                                     \
-        {                                                                                \
-            printf("Failed status on line %d: %d. Aborting.\n", __LINE__, (int)temp_rc); \
-            return 1;                                                                    \
-        }                                                                                \
-    }
-#define RCSOFTCHECK(fn)                                                                    \
-    {                                                                                      \
-        rcl_ret_t temp_rc = fn;                                                            \
-        if ((temp_rc != RCL_RET_OK))                                                       \
-        {                                                                                  \
-            printf("Failed status on line %d: %d. Continuing.\n", __LINE__, (int)temp_rc); \
-        }                                                                                  \
-    }
+#include "rcl_check_macros.h"
 
 // Pico 2W uses CYW43 for LED
 #define LED_PIN CYW43_WL_GPIO_LED_PIN
@@ -36,6 +19,13 @@
 #define MSG_STATUS_PIN 1  // GP1: 메시지 전송 상태
 #define SERVO_PIN 2       // GP2: Servo 제어
 #define PWM_LED_PIN 3     // GP3: PWM LED (짝수/홀수 표시)
+
+// ROS parameter
+#define ROS_DOMAIN_ID 0
+#define ROS_NAMESPACE "pico_namespace"
+#define ROS_NODE_NAME "pico_servo_node"
+#define ROS_AGENT_IP "192.168.1.100"
+#define ROS_AGENT_PORT 8888
 
 rcl_subscription_t subscriber;
 std_msgs__msg__Int32 msg_r;
@@ -240,6 +230,7 @@ int main()
     while (true)
     {
         RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
+        sleep_ms(1);
     }
 
     // Cleanup (unreachable in current implementation)

@@ -11,24 +11,7 @@
 #include "pico/stdlib.h"
 #include "pico_servo.h"
 #include "pico_wifi_transport.h"
-
-#define RCCHECK(fn)                                                                      \
-    {                                                                                    \
-        rcl_ret_t temp_rc = fn;                                                          \
-        if ((temp_rc != RCL_RET_OK))                                                     \
-        {                                                                                \
-            printf("Failed status on line %d: %d. Aborting.\n", __LINE__, (int)temp_rc); \
-            return 1;                                                                    \
-        }                                                                                \
-    }
-#define RCSOFTCHECK(fn)                                                                    \
-    {                                                                                      \
-        rcl_ret_t temp_rc = fn;                                                            \
-        if ((temp_rc != RCL_RET_OK))                                                       \
-        {                                                                                  \
-            printf("Failed status on line %d: %d. Continuing.\n", __LINE__, (int)temp_rc); \
-        }                                                                                  \
-    }
+#include "rcl_check_macros.h"
 
 // Pico 2W uses CYW43 for LED
 #define LED_PIN CYW43_WL_GPIO_LED_PIN
