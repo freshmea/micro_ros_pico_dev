@@ -35,7 +35,7 @@
 
 #define KILO 1e3
 #define MICRO 1e-6
-#define WRAP 10000
+#define WRAP 20000
 #define PWM_FREQ 50 // PWM frequency in hertz
 
 static float clkdiv;
@@ -120,7 +120,7 @@ int servo_init(void)
  */
 int servo_clock_auto(void)
 {
-    return servo_clock_source(CLOCKS_FC0_SRC_VALUE_PLL_SYS_CLKSRC_PRIMARY);
+    return servo_clock_source(0);
 }
 
 /**
@@ -131,15 +131,20 @@ int servo_clock_auto(void)
  */
 int servo_clock_source(uint src)
 {
-    clkdiv = (float)frequency_count_khz(src) * (float)KILO / (PWM_FREQ * WRAP);
-    if (clkdiv == 0)
-    {
-        return 1;
-    }
-    us_per_unit = 1.f / (PWM_FREQ * WRAP) / MICRO;
+    (void)src;
 
-    min = min_us / us_per_unit;
-    max = max_us / us_per_unit;
+    uint32_t sys_hz = clock_get_hz(clk_sys);
+    if (sys_hz == 0)
+        return 1;
+
+    // 1 tick = 1us 만들기
+    clkdiv = (float)sys_hz / 1000000.0f;
+
+    // us_per_unit: 1카운트당 몇 us냐? -> 1us로 고정
+    us_per_unit = 1.0f;
+
+    min = (uint)((float)min_us / us_per_unit);
+    max = (uint)((float)max_us / us_per_unit);
 
     return 0;
 }

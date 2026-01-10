@@ -45,7 +45,10 @@ cmake -DPICO_BOARD=pico2_w ..
 make
 ```
 
+### 실행
 
+- `micro-ros-agent udp4 --port 8888 -v 4` 로 agent 실행
+- pico 보드에 전원 연결 후 `minicom -b 115200 -D /dev/ttyACM0` 로 시리얼 모니터링
 
 ## 2026_01_08
 
@@ -86,3 +89,8 @@ make
 - 다음 단계로 servo 를 세팅
 - 아 프로젝트를 진행하는 repo 를 github 에 설정하고 커밋을 진행
 
+## 2026_01_10
+
+- servo 문제 해결
+  - 파형 검사로 frequency 확인 후 50Hz 로 설정
+  -
