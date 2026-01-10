@@ -29,6 +29,7 @@ add_executable(bindbot
     src/board/board.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
+    src/drivers/passive_buzzer_manager.c
     src/uros/uros_app.c
     src/transport/pico_wifi_transport.c
 )

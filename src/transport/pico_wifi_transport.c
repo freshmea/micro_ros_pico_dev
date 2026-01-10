@@ -56,69 +56,42 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, co
 
 bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
 {
-    printf("\n--- WiFi Transport Open ---\n");
-
     // WiFi 초기화
-    printf("Initializing CYW43...\n");
     if (cyw43_arch_init())
     {
-        printf("ERROR: Failed to initialize WiFi\n");
         return false;
     }
-    printf("CYW43 initialized successfully\n");
 
     cyw43_arch_enable_sta_mode();
-    printf("Station mode enabled\n");
 
-    // WiFi 연결 (설정은 project_config.h에서 수정)
-    printf("Connecting to WiFi SSID: '%s'...\n", WIFI_SSID);
-    printf("This may take up to %d seconds...\n", WIFI_CONNECT_TIMEOUT_MS / 1000);
-
+    // WiFi 연결
     if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, WIFI_AUTH_MODE, WIFI_CONNECT_TIMEOUT_MS))
     {
-        printf("ERROR: Failed to connect to WiFi\n");
-        printf("Please check:\n");
-        printf("  - SSID and password are correct in project_config.h\n");
-        printf("  - WiFi router is powered on\n");
-        printf("  - Pico is in range of WiFi\n");
         return false;
     }
-    printf("SUCCESS: Connected to WiFi!\n");
-
-    // IP 주소 출력
-    printf("IP Address: %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
 
     // UDP 초기화
-    printf("Creating UDP socket...\n");
     wifi_params.pcb = udp_new();
     if (!wifi_params.pcb)
     {
-        printf("ERROR: Failed to create UDP PCB\n");
         return false;
     }
-    printf("UDP socket created\n");
 
     // Agent IP 주소 설정
     ip4addr_aton(AGENT_IP, &wifi_params.agent_addr);
     wifi_params.agent_port = AGENT_PORT;
-    printf("Agent address set to: %s:%d\n", AGENT_IP, AGENT_PORT);
 
     // UDP 바인딩
-    printf("Binding UDP socket...\n");
     if (udp_bind(wifi_params.pcb, IP_ADDR_ANY, 0) != ERR_OK)
     {
-        printf("ERROR: Failed to bind UDP\n");
         return false;
     }
-    printf("UDP socket bound successfully\n");
 
     // UDP 수신 콜백 설정
     udp_recv(wifi_params.pcb, udp_recv_callback, &wifi_params);
-    printf("UDP receive callback registered\n");
 
     transport->args = &wifi_params;
 
-    printf("--- WiFi transport opened successfully ---\n\n");
     return true;
 }
 
@@ -139,7 +112,6 @@ size_t pico_wifi_transport_write(struct uxrCustomTransport *transport, const uin
 
     if (!params || !params->pcb)
     {
-        printf("ERROR: Invalid transport params in write\n");
         *errcode = 1;
         return 0;
     }
@@ -147,7 +119,6 @@ size_t pico_wifi_transport_write(struct uxrCustomTransport *transport, const uin
     struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
     if (!p)
     {
-        printf("ERROR: Failed to allocate pbuf\n");
         *errcode = 1;
         return 0;
     }
@@ -159,7 +130,6 @@ size_t pico_wifi_transport_write(struct uxrCustomTransport *transport, const uin
 
     if (err != ERR_OK)
     {
-        printf("ERROR: UDP send failed (err: %d)\n", err);
         *errcode = 1;
         return 0;
     }

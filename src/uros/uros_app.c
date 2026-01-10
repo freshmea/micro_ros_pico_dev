@@ -2,10 +2,12 @@
 #include "board.h"
 #include "project_config.h"
 #include "servo_ctrl.h"
+#include "passive_buzzer_manager.h"
 
 #include <rcl/error_handling.h>
 #include <rmw_microros/rmw_microros.h>
 #include <std_msgs/msg/int32.h>
+#include <std_msgs/msg/int32_multi_array.h>
 #include <stdio.h>
 
 #include "pico_wifi_transport.h"
@@ -17,14 +19,45 @@ static rcl_allocator_t allocator;
 static rclc_support_t support;
 static rclc_executor_t executor;
 static rcl_subscription_t subscriber;
+static rcl_subscription_t buzzer_subscriber;
+static rcl_timer_t buzzer_timer;
 static std_msgs__msg__Int32 msg_r;
+static std_msgs__msg__Int32MultiArray buzzer_msg;
+
+// Buzzer manager
+static PassiveBuzzerManager buzzer_manager;
+
+// Buzzer subscription callback
+static void buzzer_subscription_callback(const void *msgin)
+{
+    const std_msgs__msg__Int32MultiArray *msg = (const std_msgs__msg__Int32MultiArray *)msgin;
+
+    // msg->data.data[0] = frequency
+    // msg->data.data[1] = duration
+    if (msg->data.size >= 2)
+    {
+        int frequency = msg->data.data[0];
+        int duration = msg->data.data[1];
+        buzzer_add_note(&buzzer_manager, frequency, duration);
+    }
+}
+
+// Buzzer timer callback (10ms interval for update)
+static void buzzer_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
+{
+    (void)last_call_time;
+    if (timer != NULL)
+    {
+        uint64_t currentMillis = to_ms_since_boot(get_absolute_time());
+        buzzer_update(&buzzer_manager, currentMillis);
+        buzzer_check_button(&buzzer_manager);
+    }
+}
 
 // Subscription callback
 static void subscription_callback(const void *msgin)
 {
     const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msgin;
-
-    printf("Received message: %d\n", msg->data);
 
     // Turn on GP1 (message received indicator)
     board_set_msg_status(1);
@@ -54,7 +87,9 @@ static void subscription_callback(const void *msgin)
 
 int uros_app_init(void)
 {
-    printf("Setting up custom transport...\n");
+    // Initialize buzzer manager
+    buzzer_init(&buzzer_manager);
+
     rmw_uros_set_custom_transport(
         false,
         NULL,
@@ -65,39 +100,60 @@ int uros_app_init(void)
 
     allocator = rcl_get_default_allocator();
 
-    // Wait for agent successful ping (settings from project_config.h)
+    // Create init options and set domain ID
+    rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
+    RCCHECK(rcl_init_options_init(&init_options, allocator));
+    RCCHECK(rcl_init_options_set_domain_id(&init_options, ROS_DOMAIN_ID));
+
+    // Wait for agent successful ping
     const int timeout_ms = AGENT_PING_TIMEOUT_MS;
     const uint8_t attempts = AGENT_PING_ATTEMPTS;
 
-    printf("Pinging micro-ROS agent (timeout: %d ms, attempts: %d)...\n", timeout_ms, attempts);
     rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
 
     if (ret != RCL_RET_OK)
     {
-        printf("ERROR: Failed to connect to agent (error code: %d)\n", ret);
         board_blink_error();
         return -1;
     }
 
-    printf("Successfully connected to agent!\n");
     // Agent connection success - turn on GP0
     board_set_wifi_status(1);
 
-    printf("Initializing RCL support...\n");
-    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+    RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
 
-    printf("Creating node '%s'...\n", ROS_NODE_NAME);
     RCCHECK(rclc_node_init_default(&node, ROS_NODE_NAME, ROS_NAMESPACE, &support));
 
-    printf("Creating subscriber '%s'...\n", ROS_TOPIC_SUBSCRIBE);
+    // Initialize servo angle subscriber
     RCCHECK(rclc_subscription_init_default(
         &subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-        ROS_TOPIC_SUBSCRIBE));
+        "servo_angle"));
 
-    printf("Initializing executor...\n");
-    RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+    // Initialize buzzer subscriber
+    buzzer_msg.data.capacity = 10;
+    buzzer_msg.data.size = 0;
+    buzzer_msg.data.data = (int32_t *)malloc(buzzer_msg.data.capacity * sizeof(int32_t));
+
+    RCCHECK(rclc_subscription_init_default(
+        &buzzer_subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
+        "buzzer"));
+
+    // Initialize buzzer timer (10ms = 100Hz)
+    const unsigned int timer_timeout = 10;
+    RCCHECK(rclc_timer_init_default2(
+        &buzzer_timer,
+        &support,
+        RCL_MS_TO_NS(timer_timeout),
+        buzzer_timer_callback,
+        true));  // autostart = true
+
+    // Initialize executor with 3 handles (2 subscriptions + 1 timer)
+    RCCHECK(rclc_executor_init(&executor, &support.context, 3, &allocator));
+
     RCCHECK(rclc_executor_add_subscription(
         &executor,
         &subscriber,
@@ -105,11 +161,16 @@ int uros_app_init(void)
         &subscription_callback,
         ON_NEW_DATA));
 
-    printf("Turning on onboard LED...\n");
-    board_set_onboard_led(1);
+    RCCHECK(rclc_executor_add_subscription(
+        &executor,
+        &buzzer_subscriber,
+        &buzzer_msg,
+        &buzzer_subscription_callback,
+        ON_NEW_DATA));
 
-    printf("\n=== System Ready ===\n");
-    printf("Waiting for messages on '%s' topic...\n\n", ROS_TOPIC_SUBSCRIBE);
+    RCCHECK(rclc_executor_add_timer(&executor, &buzzer_timer));
+
+    board_set_onboard_led(1);
 
     msg_r.data = 0;
     return 0;
@@ -125,17 +186,14 @@ void uros_app_run(void)
 
 void uros_app_cleanup(void)
 {
-    rcl_ret_t ret;
+    RCSOFTCHECK(rcl_timer_fini(&buzzer_timer));
+    RCSOFTCHECK(rcl_subscription_fini(&buzzer_subscriber, &node));
+    RCSOFTCHECK(rcl_subscription_fini(&subscriber, &node));
+    RCSOFTCHECK(rcl_node_fini(&node));
 
-    ret = rcl_subscription_fini(&subscriber, &node);
-    if (ret != RCL_RET_OK)
+    // Free buzzer message memory
+    if (buzzer_msg.data.data != NULL)
     {
-        printf("ERROR: Failed to cleanup subscription (error code: %d)\n", ret);
-    }
-
-    ret = rcl_node_fini(&node);
-    if (ret != RCL_RET_OK)
-    {
-        printf("ERROR: Failed to cleanup node (error code: %d)\n", ret);
+        free(buzzer_msg.data.data);
     }
 }

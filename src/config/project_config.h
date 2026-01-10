@@ -27,9 +27,9 @@
 // ============================================================================
 // ROS2 토픽/노드 설정
 // ============================================================================
-#define ROS_NODE_NAME "pico_node"             // ROS2 노드 이름
+#define ROS_NODE_NAME "bindbot"             // ROS2 노드 이름
 #define ROS_NAMESPACE ""                      // ROS2 네임스페이스
-#define ROS_TOPIC_SUBSCRIBE "pico_subscriber" // 구독할 토픽 이름
+#define ROS_DOMAIN_ID 0                       // ROS2 도메인 ID
 
 // ============================================================================
 // GPIO 핀 할당
