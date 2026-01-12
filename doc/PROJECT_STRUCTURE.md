@@ -2,7 +2,7 @@
 
 ## 프로젝트 구조
 
-```
+```text
 micro_ros_pico_dev/
 ├── src/
 │   ├── main.c                    # 메인 애플리케이션 진입점
@@ -44,11 +44,13 @@ micro_ros_pico_dev/
 ## 모듈 설명
 
 ### 1. `src/main.c`
+
 - 프로그램의 메인 진입점
 - 각 모듈의 초기화 및 실행 순서 관리
 - 보드 초기화 → 서보 초기화 → micro-ROS 초기화 → 실행 루프
 
 ### 2. `src/board/` - 보드 추상화 계층
+
 - **board.h / board.c**: Pico 2W 보드 초기화 및 GPIO 제어
 - GPIO 핀 정의 및 관리
 - LED 상태 제어 (WiFi 상태, 메시지 상태, PWM LED, 온보드 LED)
@@ -87,6 +89,7 @@ micro_ros_pico_dev/
 - **lwipopts.h**: lwIP 네트워크 스택 설정
 
 ### 6. `src/uros/` - micro-ROS 애플리케이션
+
 - **uros_app.h / uros_app.c**: micro-ROS 애플리케이션 로직
 - WiFi 전송 계층 설정
 - micro-ROS agent 연결
@@ -105,6 +108,7 @@ make -j4
 ```
 
 빌드 결과물:
+
 - `pico_micro_ros_example.uf2` - Pico 2W에 업로드할 펌웨어
 - `pico_micro_ros_example.elf` - 디버깅용 ELF 파일
 
@@ -121,14 +125,16 @@ make -j4
 
 ## 개발 이점
 
-### 모듈화의 장점:
+### 모듈화의 장점
+
 1. **유지보수성**: 각 기능이 독립적인 파일로 분리
 2. **재사용성**: 다른 프로젝트에서 모듈 재사용 가능
 3. **테스트 용이성**: 각 모듈을 독립적으로 테스트 가능
 4. **협업 효율성**: 여러 개발자가 동시에 작업 가능
 5. **확장성**: 새로운 기능 추가 시 기존 코드 영향 최소화
 
-### 분할 컴파일 이점:
+### 분할 컴파일 이점
+
 - 변경된 파일만 재컴파일하여 빌드 시간 단축
 - 의존성 관리가 명확함
 - 링크 에러 조기 발견 가능

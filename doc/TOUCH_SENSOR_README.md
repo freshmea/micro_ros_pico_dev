@@ -4,35 +4,39 @@
 
 ## 📌 하드웨어 연결
 
-```
+```text
 Touch Sensors:
   • Touch Sensor 1: GP18 (Pull-down)
   • Touch Sensor 2: GP19 (Pull-down)
   • Touch Sensor 3: GP20 (Pull-down)
-  
+
   각 센서는 High 신호로 터치 감지
 ```
 
 ## 🎯 주요 기능
 
 ### 1. 자동 비프음
+
 - 터치 센서가 눌리면 자동으로 비프음 재생 (1000Hz, 100ms)
 - 별도 명령 없이 즉각적인 피드백 제공
 
 ### 2. 상태 발행 (Bool)
+
 - **Topic**: `/touch_X/state` (X = 1, 2, 3)
 - **Type**: `std_msgs/Bool`
-- **Data**: 
+- **Data**:
   - `true`: 터치 센서가 눌림
   - `false`: 터치 센서가 떼어짐
 
 ### 3. Beep Count 발행 (UInt8)
+
 - **Topic**: `/touch_X/beep_count`
 - **Type**: `std_msgs/UInt8`
 - **Data**: 터치 중 발생한 beep 횟수
 - 터치가 떼어질 때 발행됨
 
 ### 4. Duration 발행 (UInt64)
+
 - **Topic**: `/touch_X/duration`
 - **Type**: `std_msgs/UInt64`
 - **Data**: 터치가 지속된 시간 (밀리초)
@@ -41,18 +45,22 @@ Touch Sensors:
 ## 📁 생성된 파일
 
 ### 드라이버 파일
+
 - **`src/drivers/touch_sensor.h`**: 터치 센서 드라이버 헤더
 - **`src/drivers/touch_sensor.c`**: 터치 센서 드라이버 구현
 
 ### 통합 파일
+
 - **`src/uros/uros_app.c`**: micro-ROS 애플리케이션 (업데이트)
 
 ### 테스트 파일
+
 - **`test/test_touch.py`**: Python 테스트 스크립트
 
 ## 🏗️ 구조 설계
 
 ### TouchSensor 구조체
+
 ```c
 typedef struct
 {
@@ -67,6 +75,7 @@ typedef struct
 ```
 
 ### TouchSensorManager 구조체
+
 ```c
 typedef struct
 {
@@ -75,6 +84,7 @@ typedef struct
 ```
 
 ### 장점
+
 - ✅ **코드 중복 제거**: 배열로 관리하여 3개 센서를 효율적으로 처리
 - ✅ **확장성**: `TOUCH_SENSOR_COUNT`만 변경하면 센서 개수 조정 가능
 - ✅ **유지보수**: 단일 함수로 모든 센서 제어
@@ -143,7 +153,7 @@ from std_msgs.msg import Bool, UInt8, UInt64
 class TouchMonitor(Node):
     def __init__(self):
         super().__init__('touch_monitor')
-        
+
         # Touch 1 상태 구독
         self.sub = self.create_subscription(
             Bool,
@@ -151,7 +161,7 @@ class TouchMonitor(Node):
             self.callback,
             10
         )
-    
+
     def callback(self, msg):
         if msg.data:
             print("Touch 1 PRESSED!")
@@ -197,6 +207,7 @@ for i in range(1, 4):
 ```c
 void touch_sensor_init(TouchSensorManager *manager);
 ```
+
 모든 터치 센서를 초기화하고 GPIO를 설정합니다.
 
 ### 업데이트
@@ -204,6 +215,7 @@ void touch_sensor_init(TouchSensorManager *manager);
 ```c
 void touch_sensor_update(TouchSensorManager *manager, uint64_t currentMillis);
 ```
+
 모든 센서의 상태를 업데이트합니다. 타이머에서 10ms마다 호출됩니다.
 
 ### 상태 확인
@@ -225,7 +237,7 @@ void touch_sensor_increment_beep_count(TouchSensorManager *manager, uint8_t inde
 ## 📊 Topic 구조
 
 | Sensor | State Topic | Beep Topic | Duration Topic |
-|--------|-------------|------------|----------------|
+| -------- | ------------- | ------------ | ---------------- |
 | Touch 1 (GP18) | `/touch_1/state` | `/touch_1/beep_count` | `/touch_1/duration` |
 | Touch 2 (GP19) | `/touch_2/state` | `/touch_2/beep_count` | `/touch_2/duration` |
 | Touch 3 (GP20) | `/touch_3/state` | `/touch_3/beep_count` | `/touch_3/duration` |
@@ -233,7 +245,9 @@ void touch_sensor_increment_beep_count(TouchSensorManager *manager, uint8_t inde
 ## ⚙️ 설정
 
 ### 핀 변경
+
 `src/drivers/touch_sensor.h`에서 핀 번호 수정:
+
 ```c
 #define TOUCH_PIN_1 18
 #define TOUCH_PIN_2 19
@@ -241,11 +255,13 @@ void touch_sensor_increment_beep_count(TouchSensorManager *manager, uint8_t inde
 ```
 
 ### Long Press 임계값
+
 ```c
 #define LONG_PRESS_THRESHOLD_MS 1000  // 1초
 ```
 
 ### 센서 개수 변경
+
 ```c
 #define TOUCH_SENSOR_COUNT 3  // 원하는 개수로 변경
 ```
@@ -257,7 +273,7 @@ void touch_sensor_increment_beep_count(TouchSensorManager *manager, uint8_t inde
 3. **비프음 재생**: 1000Hz, 100ms 자동 재생
 4. **Duration 측정**: 터치 지속 시간 측정 시작
 5. **터치 해제**: GPIO가 LOW 신호 감지
-6. **Release 발행**: 
+6. **Release 발행**:
    - `touch_X/state = false`
    - `touch_X/beep_count = N`
    - `touch_X/duration = Xms`
@@ -265,17 +281,20 @@ void touch_sensor_increment_beep_count(TouchSensorManager *manager, uint8_t inde
 ## 🔍 문제 해결
 
 ### 센서가 감지되지 않을 때
+
 1. GPIO 연결 확인 (GP18, 19, 20)
 2. Pull-down 저항 확인
 3. 센서 전원 확인
 4. Topic 확인: `ros2 topic list | grep touch`
 
 ### 비프음이 나지 않을 때
+
 1. Buzzer 연결 확인 (GP16)
 2. Buzzer topic 확인: `ros2 topic echo /buzzer`
 3. 버저 초기화 확인
 
 ### Duration이 0일 때
+
 1. 타이머 동작 확인
 2. 센서가 충분히 길게 눌렸는지 확인
 3. Update 주기 확인 (10ms)
@@ -290,15 +309,19 @@ void touch_sensor_increment_beep_count(TouchSensorManager *manager, uint8_t inde
 ## 🎯 활용 예제
 
 ### 1. 터치 카운터
+
 각 센서의 터치 횟수를 카운트하여 표시
 
 ### 2. 터치 시간 측정
+
 Long press를 감지하여 특별한 동작 수행
 
 ### 3. 터치 패턴 인식
+
 여러 센서의 터치 순서로 패턴 인식
 
 ### 4. 게임 컨트롤러
+
 3개 터치 센서를 게임 버튼으로 활용
 
 ## 📚 관련 문서

@@ -9,7 +9,7 @@
 
 ### 연결 방법
 
-```
+```text
 Passive Buzzer:
   - VCC -> 3.3V
   - GND -> GND
@@ -24,6 +24,7 @@ Button:
 ## 기능
 
 ### 1. ROS Topic 구독
+
 - **Topic 이름**: `/buzzer`
 - **메시지 타입**: `std_msgs/Int32MultiArray`
 - **데이터 형식**: `[frequency, duration]`
@@ -31,10 +32,12 @@ Button:
   - `duration`: 지속 시간 (ms)
 
 ### 2. 타이머 기반 업데이트
+
 - 10ms 간격 (100Hz)으로 버저 상태 업데이트
 - 버튼 상태 체크
 
 ### 3. 버튼 기능
+
 - GP24 버튼을 누르면 랜덤 멜로디 재생
 - 다음 중 하나가 랜덤으로 선택됨:
   - Success 멜로디
@@ -55,6 +58,7 @@ Button:
 ### 1. 빌드 및 플래시
 
 CMakeLists.txt에 소스 파일 추가 필요:
+
 ```cmake
 add_executable(your_project
     # ... 기존 소스 파일들
@@ -113,39 +117,49 @@ ros2 topic pub --once /buzzer std_msgs/Int32MultiArray "{data: [784, 300]}"  # G
 ## API 레퍼런스
 
 ### 초기화 함수
+
 ```c
 void buzzer_init(PassiveBuzzerManager *manager);
 ```
+
 버저 매니저를 초기화합니다. GPIO 설정 및 시작 멜로디 재생을 포함합니다.
 
 ### 업데이트 함수
+
 ```c
 void buzzer_update(PassiveBuzzerManager *manager, uint64_t currentMillis);
 ```
+
 버저 상태를 업데이트합니다. 타이머 콜백에서 호출됩니다.
 
 ### 노트 추가 함수
+
 ```c
 void buzzer_add_note(PassiveBuzzerManager *manager, int frequency, int duration);
 ```
+
 단일 노트를 큐에 추가합니다.
 
 ### 멜로디 추가 함수
+
 ```c
 void buzzer_add_melody(PassiveBuzzerManager *manager, MelodyNote *melody, int noteCount);
 ```
+
 멜로디 배열을 큐에 추가합니다.
 
 ### 버튼 체크 함수
+
 ```c
 void buzzer_check_button(PassiveBuzzerManager *manager);
 ```
+
 버튼 상태를 확인하고 눌렸을 때 랜덤 멜로디를 재생합니다.
 
 ## 주요 음계 주파수
 
 | 음 | 주파수 (Hz) |
-|----|------------|
+| ---- | ------------ |
 | C4 | 262 |
 | D4 | 294 |
 | E4 | 330 |
@@ -165,6 +179,7 @@ void buzzer_check_button(PassiveBuzzerManager *manager);
 ## 예제 멜로디
 
 ### Happy Birthday
+
 ```c
 MelodyNote melody[] = {
     {523, 250}, {0, 50},   // C
@@ -178,6 +193,7 @@ buzzer_add_melody(&buzzer_manager, melody, 11);
 ```
 
 ### Twinkle Twinkle Little Star
+
 ```c
 MelodyNote melody[] = {
     {523, 500}, {0, 100},  // C
@@ -194,16 +210,19 @@ buzzer_add_melody(&buzzer_manager, melody, 13);
 ## 문제 해결
 
 ### 버저에서 소리가 나지 않을 때
+
 1. GP16 핀 연결 확인
 2. 버저가 passive buzzer인지 확인 (active buzzer는 작동하지 않음)
 3. 전원 연결 확인 (3.3V)
 
 ### 버튼이 작동하지 않을 때
+
 1. GP24 핀 연결 확인
 2. 버튼이 GND에 연결되어 있는지 확인
 3. 풀업 저항이 활성화되어 있는지 확인
 
 ### micro-ROS 연결 문제
+
 1. Agent가 실행 중인지 확인
 2. WiFi 설정 확인
 3. 도메인 ID 일치 확인
