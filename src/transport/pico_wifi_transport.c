@@ -56,24 +56,16 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, co
 
 bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
 {
-    // WiFi 초기화
-    if (cyw43_arch_init())
-    {
-        return false;
-    }
+    // WiFi는 이미 board_wifi_init()에서 초기화됨
+    // 여기서는 UDP만 설정
 
-    cyw43_arch_enable_sta_mode();
-
-    // WiFi 연결
-    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, WIFI_AUTH_MODE, WIFI_CONNECT_TIMEOUT_MS))
-    {
-        return false;
-    }
+    printf("[INFO] Setting up UDP transport...\n");
 
     // UDP 초기화
     wifi_params.pcb = udp_new();
     if (!wifi_params.pcb)
     {
+        printf("[ERROR] Failed to create UDP PCB\n");
         return false;
     }
 
@@ -81,9 +73,12 @@ bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
     ip4addr_aton(AGENT_IP, &wifi_params.agent_addr);
     wifi_params.agent_port = AGENT_PORT;
 
+    printf("[INFO] Agent IP: %s, Port: %d\n", AGENT_IP, AGENT_PORT);
+
     // UDP 바인딩
     if (udp_bind(wifi_params.pcb, IP_ADDR_ANY, 0) != ERR_OK)
     {
+        printf("[ERROR] Failed to bind UDP\n");
         return false;
     }
 
@@ -91,6 +86,8 @@ bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
     udp_recv(wifi_params.pcb, udp_recv_callback, &wifi_params);
 
     transport->args = &wifi_params;
+
+    printf("[INFO] UDP transport ready\n");
 
     return true;
 }

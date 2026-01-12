@@ -284,6 +284,11 @@ void uros_app_run(void)
     }
 }
 
+void uros_app_spin_once(void)
+{
+    RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(EXECUTOR_SPIN_TIMEOUT_MS)));
+}
+
 void uros_app_cleanup(void)
 {
     // Clean up timers

@@ -27,6 +27,10 @@ sudo apt install gcc-arm-none-eabi
 - .pico-sdk 환경변수 설정
 
 ```bash
+mkdir -p ~/pico-sdk
+cd ~/pico-sdk/lib
+git clone https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+
 export PICO_SDK_PATH=/mnt/c/Users/username/path/to/pico-sdk
 ```
 

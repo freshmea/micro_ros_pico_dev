@@ -11,6 +11,13 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
+# Include FreeRTOS Kernel AFTER pico_sdk_init()
+include(FreeRTOS_Kernel_import.cmake)
+
+# FreeRTOS config directory
+set(FREERTOS_CONFIG_DIR "${CMAKE_CURRENT_LIST_DIR}/src/config/freertos" CACHE STRING "FreeRTOS Config Path")
+include_directories("${FREERTOS_CONFIG_DIR}")
+
 # Add libfixmath
 add_library(fixmath STATIC
     libfixmath/libfixmath/fix16.c
@@ -27,6 +34,7 @@ link_directories(libmicroros)
 add_executable(bindbot
     src/main.c
     src/board/board.c
+    src/board/wifi_init.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
@@ -42,6 +50,8 @@ target_link_libraries(bindbot
     hardware_irq
     fixmath
     microros
+    FreeRTOS-Kernel
+    FreeRTOS-Kernel-Heap4
 )
 
 target_include_directories(bindbot PUBLIC
@@ -53,6 +63,7 @@ target_include_directories(bindbot PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/transport
     ${CMAKE_CURRENT_LIST_DIR}/src/uros
     ${CMAKE_CURRENT_LIST_DIR}/src/config
+    ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
     libfixmath/libfixmath
 )
 
@@ -68,3 +79,4 @@ add_compile_definitions(PICO_STDIO_DEFAULT_CRLF=0)
 
 # Generate UF2
 pico_add_extra_outputs(bindbot)
+

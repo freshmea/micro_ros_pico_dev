@@ -48,4 +48,16 @@ void board_set_onboard_led(uint8_t state);
  */
 void board_blink_error(void);
 
+/**
+ * @brief Initialize and connect WiFi
+ *
+ * @return 0 on success, -1 on error
+ */
+int board_wifi_init(void);
+
+/**
+ * @brief Deinitialize WiFi
+ */
+void board_wifi_deinit(void);
+
 #endif // BOARD_H
