@@ -31,6 +31,15 @@ void board_init(void)
     gpio_init(PWM_LED_PIN);
     gpio_set_dir(PWM_LED_PIN, GPIO_OUT);
     gpio_put(PWM_LED_PIN, 0);
+
+    // Passive buzzer PWM pin and button (pull-up)
+    gpio_set_function(BUZZER_PIN, GPIO_FUNC_PWM);
+
+    gpio_init(PULLUP_BUTTON_PIN);
+    gpio_set_dir(PULLUP_BUTTON_PIN, GPIO_IN);
+    gpio_pull_up(PULLUP_BUTTON_PIN);
+
+
 }
 
 void board_set_wifi_status(uint8_t state)

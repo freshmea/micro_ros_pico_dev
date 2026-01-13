@@ -102,21 +102,20 @@ static void periph_task(void *params) {
             if (touch_sensor_is_pressed(&touch, i)) {
                 printf("[core %d] Touch %d pressed\n", get_core_num(), i + 1);
                 buzzer_play_beep(&buzzer, 1200, 100);
-                servo_ctrl_move_to_angle(SERVO_PIN, i * 90);
             }
         }
 
         buzzer_update(&buzzer, now_ms);
         buzzer_check_button(&buzzer);
 
-        if ((xTaskGetTickCount() - last_led_toggle) >= pdMS_TO_TICKS(500)) {
-            last_led_toggle = xTaskGetTickCount();
-            led_state = !led_state;
-            board_set_wifi_status(led_state);
-            board_set_msg_status(!led_state);
-            board_set_pwm_led(led_state);
-            printf("[core %d] LED toggle: %d\n", get_core_num(), led_state ? 1 : 0);
-        }
+        // if ((xTaskGetTickCount() - last_led_toggle) >= pdMS_TO_TICKS(500)) {
+        //     last_led_toggle = xTaskGetTickCount();
+        //     led_state = !led_state;
+        //     board_set_wifi_status(led_state);
+        //     board_set_msg_status(!led_state);
+        //     board_set_pwm_led(led_state);
+        //     printf("[core %d] LED toggle: %d\n", get_core_num(), led_state ? 1 : 0);
+        // }
 
         vTaskDelay(pdMS_TO_TICKS(20));
     }

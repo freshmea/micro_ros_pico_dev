@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define BUZZER_PIN 16
-#define BUTTON_PIN 24
 #define MAX_NOTES 100
 
 typedef struct

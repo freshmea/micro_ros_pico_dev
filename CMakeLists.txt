@@ -15,8 +15,8 @@ pico_sdk_init()
 set(FREERTOS_CONFIG_DIR "${CMAKE_CURRENT_LIST_DIR}/src/config/freertos" CACHE STRING "FreeRTOS Config Path")
 include_directories("${FREERTOS_CONFIG_DIR}")
 
-# Include FreeRTOS Kernel AFTER pico_sdk_init() (use official pico-sdk path)
-include(/home/aa/pico/pico-sdk/lib/FreeRTOS-Kernel/portable/ThirdParty/Community-Supported-Ports/GCC/RP2350_ARM_NTZ/FreeRTOS_Kernel_import.cmake)
+# Include FreeRTOS Kernel AFTER pico_sdk_init() (use sdk path from env)
+include(${PICO_SDK_PATH}/lib/FreeRTOS-Kernel/portable/ThirdParty/Community-Supported-Ports/GCC/RP2350_ARM_NTZ/FreeRTOS_Kernel_import.cmake)
 
 # Add libfixmath
 add_library(fixmath STATIC

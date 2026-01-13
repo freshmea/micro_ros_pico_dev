@@ -38,14 +38,16 @@
 #define MSG_STATUS_PIN 1  // GP1: 메시지 수신 표시 LED
 #define SERVO_PIN 2       // GP2: 서보 제어 PWM 출력
 #define PWM_LED_PIN 3     // GP3: 짝수/홀수 표시 LED
+#define PULLUP_BUTTON_PIN 17 // GP17: 풀업 버튼 입력
+#define BUZZER_PIN 16    // GP16: 수동 버저 출력
 
 // ============================================================================
 // 서보 모터 설정
 // ============================================================================
 #define SERVO_PWM_FREQ_HZ 50 // 서보 PWM 주파수 (Hz)
 #define SERVO_PWM_WRAP 20000 // PWM wrap 값 (20ms 주기)
-#define SERVO_MIN_US 1000    // 최소 펄스 폭 (us) - 0도
-#define SERVO_MAX_US 2000    // 최대 펄스 폭 (us) - 180도
+#define SERVO_MIN_US 500    // 최소 펄스 폭 (us) - 0도
+#define SERVO_MAX_US 2400    // 최대 펄스 폭 (us) - 180도
 #define SERVO_INIT_ANGLE 90  // 초기 서보 각도
 
 // ============================================================================

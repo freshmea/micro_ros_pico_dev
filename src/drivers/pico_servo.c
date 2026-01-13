@@ -28,6 +28,7 @@
 #include "hardware/structs/clocks.h"
 #include "hardware/structs/pll.h"
 #include "pico/time.h"
+#include "config/project_config.h"
 
 #include "fixmath.h"
 
@@ -35,7 +36,6 @@
 
 #define KILO 1e3
 #define MICRO 1e-6
-#define WRAP 20000
 #define PWM_FREQ 50 // PWM frequency in hertz
 
 static float clkdiv;
@@ -48,8 +48,8 @@ static uint servo_pos[32];
 static uint servo_pos_buf[16];
 static pwm_config slice_cfg[8];
 
-static uint min_us = 1000;
-static uint max_us = 2000;
+static uint min_us = SERVO_MIN_US;
+static uint max_us = SERVO_MAX_US;
 static fix16_t us_per_unit = 0.f;
 
 static void wrap_cb(void)
@@ -157,13 +157,13 @@ int servo_clock_source(uint src)
  */
 int servo_clock_manual(uint freq)
 {
-    clkdiv = (float)(freq * KILO) / (float)(PWM_FREQ * WRAP);
+    clkdiv = (float)(freq * KILO) / (float)(PWM_FREQ * SERVO_PWM_WRAP);
     if (clkdiv == 0)
     {
         return 1;
     }
-    min = 0.025f * (float)WRAP;
-    max = 0.125f * (float)WRAP;
+    min = 0.025f * (float)SERVO_PWM_WRAP;
+    max = 0.125f * (float)SERVO_PWM_WRAP;
 
     return 0;
 }
@@ -192,7 +192,7 @@ int servo_attach(uint pin)
         pwm_set_irq_enabled(slice, true);
 
         slice_cfg[slice] = pwm_get_default_config();
-        pwm_config_set_wrap(&slice_cfg[slice], WRAP);
+        pwm_config_set_wrap(&slice_cfg[slice], SERVO_PWM_WRAP);
         pwm_config_set_clkdiv(&slice_cfg[slice], clkdiv);
         pwm_init(slice, &slice_cfg[slice], true);
         pwm_set_chan_level(slice, pin % 2, 90);
@@ -225,6 +225,7 @@ int servo_move_to(uint pin, uint angle)
                        fix16_from_int(max - min))) +
                min;
 
+    printf("Servo move to: pin=%d, angle=%d, val=%d\n", pin, angle, val);
     uint pos = slice_map[pin] + (pin % 2);
     servo_pos[16 * servo_pos_buf[pos] + pos] = val;
     servo_pos_buf[pos] = (servo_pos_buf[pos] + 1) % 2;
@@ -251,10 +252,10 @@ int servo_microseconds(uint pin, uint us)
     // us_per_unit is in fix16_t format (microseconds per PWM count)
     uint val = (uint)fix16_to_int(fix16_div(fix16_from_int(us), us_per_unit));
 
-    // Clamp value to valid range (0 to WRAP)
-    if (val > WRAP)
+    // Clamp value to valid range (0 to SERVO_PWM_WRAP)
+    if (val > SERVO_PWM_WRAP)
     {
-        val = WRAP;
+        val = SERVO_PWM_WRAP;
     }
 
     uint pos = slice_map[pin] + (pin % 2);

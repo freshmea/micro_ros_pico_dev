@@ -138,9 +138,6 @@ static void subscription_callback(const void *msgin)
         board_set_pwm_led(0); // GP3 off (odd)
     }
 
-    // Update response message data
-    msg_r.data = msg_r.data + 3;
-
     // Move servo to angle (0-180 range)
     servo_ctrl_move_to_angle(SERVO_PIN, msg->data);
 

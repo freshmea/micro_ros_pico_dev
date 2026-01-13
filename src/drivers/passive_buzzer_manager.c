@@ -2,6 +2,7 @@
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
 #include "pico/stdlib.h"
+#include "project_config.h"
 #include <stdlib.h>
 #include <time.h>
 
@@ -47,7 +48,7 @@ static void noTone(uint gpio)
 void buzzer_init(PassiveBuzzerManager *manager)
 {
     manager->buzzerPin = BUZZER_PIN;
-    manager->buttonPin = BUTTON_PIN;
+    manager->buttonPin = PULLUP_BUTTON_PIN;
     manager->isPlaying = false;
     manager->playStartTime = 0;
     manager->currentNoteStartTime = 0;
@@ -58,14 +59,8 @@ void buzzer_init(PassiveBuzzerManager *manager)
     manager->noteActive = false;
     manager->lastButtonState = false;
 
-    // 버저 핀 설정 (PWM)
-    gpio_set_function(manager->buzzerPin, GPIO_FUNC_PWM);
+    // PWM slice는 핀 설정 이후 계산
     slice_num = pwm_gpio_to_slice_num(manager->buzzerPin);
-
-    // 버튼 핀 설정 (풀업)
-    gpio_init(manager->buttonPin);
-    gpio_set_dir(manager->buttonPin, GPIO_IN);
-    gpio_pull_up(manager->buttonPin);
 
     noTone(manager->buzzerPin);
 
