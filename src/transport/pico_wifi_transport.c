@@ -35,7 +35,11 @@ static wifi_transport_params_t wifi_params = {0};
 // This is CRITICAL for micro-ROS to work properly with FreeRTOS
 int usleep(uint64_t us)
 {
+    #if PROJECT_USE_FREERTOS
     vTaskDelay(pdMS_TO_TICKS(us / 1000 + (us % 1000 != 0)));
+    #else
+    sleep_us(us);
+    #endif
     return 0;
 }
 
@@ -66,9 +70,31 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, co
 
 bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
 {
-    // WiFi는 이미 uros_app_init()에서 초기화됨
-    // 여기서는 UDP만 설정
+    // FreeRTOS 경로에서는 WiFi가 별도 태스크에서 이미 초기화/연결된 상태를 전제.
+    // bare metal 경로는 여기서 직접 init/connect 수행 (6d2ce22 흐름 유지).
+    #if PROJECT_USE_FREERTOS
     printf("[INFO] Setting up UDP transport...\n");
+    #else
+    printf("[INFO] Initializing WiFi (transport open)...\n");
+    if (cyw43_arch_init())
+    {
+        printf("[ERROR] cyw43_arch_init failed\n");
+        return false;
+    }
+
+    cyw43_arch_enable_sta_mode();
+
+    if (cyw43_arch_wifi_connect_timeout_ms(
+            WIFI_SSID,
+            WIFI_PASSWORD,
+            WIFI_AUTH_MODE,
+            WIFI_CONNECT_TIMEOUT_MS))
+    {
+        printf("[ERROR] WiFi connect failed\n");
+        return false;
+    }
+    printf("[INFO] WiFi connected\n");
+    #endif
 
     wifi_params.pcb = udp_new();
     if (!wifi_params.pcb)

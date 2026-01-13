@@ -19,7 +19,7 @@
 // ============================================================================
 // micro-ROS 에이전트 설정
 // ============================================================================
-#define AGENT_IP "192.168.219.47"  // micro-ROS agent IP 주소
+#define AGENT_IP "192.168.219.61"  // micro-ROS agent IP 주소
 #define AGENT_PORT 8888            // micro-ROS agent 포트
 #define AGENT_PING_TIMEOUT_MS 1000 // Agent ping 타임아웃 (ms)
 #define AGENT_PING_ATTEMPTS 120    // Agent ping 시도 횟수
@@ -64,6 +64,11 @@
 // 디버그 설정
 // ============================================================================
 #define DEBUG_PRINT_ENABLED 1 // 디버그 출력 활성화 (0: 비활성화, 1: 활성화)
+
+// ============================================================================
+// FreeRTOS 사용 여부 (1: FreeRTOS, 0: bare metal)
+// ============================================================================
+#define PROJECT_USE_FREERTOS 0
 
 #if DEBUG_PRINT_ENABLED
 #define DEBUG_PRINTF(...) printf(__VA_ARGS__)
