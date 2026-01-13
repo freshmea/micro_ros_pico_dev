@@ -6,14 +6,22 @@
 #include "task.h"
 #include "semphr.h"
 #include "hardware/watchdog.h"
+#include "pico/cyw43_arch.h"
+#include "cyw43.h"
+#include "project_config.h"
 
 #include "board/board.h"
 #include "drivers/servo_ctrl.h"
 #include "uros/uros_app.h"
 
+// cyw43 상태 외부 선언
+extern cyw43_t cyw43_state;
+
 // Task configuration
-#define TASK_STACK_SIZE     2048
-#define UROS_TASK_PRIORITY  2
+// WiFi + lwIP + micro-ROS는 매우 큰 스택 필요!
+#define TASK_STACK_SIZE     8192
+// lwIP tcpip 스레드와 동일한 우선순위 사용 (configMAX_PRIORITIES - 2 = 30)
+#define UROS_TASK_PRIORITY  (configMAX_PRIORITIES - 2)  // 2 -> 30으로 변경
 #define MAIN_TASK_PRIORITY  1
 
 // Task handles
@@ -90,15 +98,56 @@ void uros_state_task(void *params) {
     board_init();
     printf("[INFO] Board initialized\n");
 
-    // Initialize WiFi BEFORE trying to ping agent
+    // WiFi 초기화 (ping_agent 전에 필수!)
     printf("[INFO] Initializing WiFi...\n");
-    if (board_wifi_init() != 0) {
-        printf("[ERROR] WiFi initialization failed!\n");
+    if (cyw43_arch_init())
+    {
+        printf("[ERROR] Failed to initialize WiFi hardware\n");
         printf("[ERROR] System will reset in 5 seconds...\n");
         vTaskDelay(pdMS_TO_TICKS(5000));
         reset();
     }
-    printf("[INFO] WiFi ready\n");
+
+    printf("[INFO] WiFi hardware initialized\n");
+    cyw43_arch_enable_sta_mode();
+    printf("[INFO] STA mode enabled\n");
+
+    // WiFi 연결
+    printf("[INFO] Connecting to WiFi: %s\n", WIFI_SSID);
+
+    uint32_t start_time = to_ms_since_boot(get_absolute_time());
+    int connect_err = cyw43_arch_wifi_connect_async(WIFI_SSID, WIFI_PASSWORD, WIFI_AUTH_MODE);
+
+    if (connect_err != 0)
+    {
+        printf("[ERROR] Failed to start WiFi connection (error: %d)\n", connect_err);
+        printf("[ERROR] System will reset in 5 seconds...\n");
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        reset();
+    }
+
+    // 연결 대기 (폴링)
+    extern cyw43_t cyw43_state;
+    int status = CYW43_LINK_UP + 1;
+    while (status != CYW43_LINK_UP)
+    {
+        if (to_ms_since_boot(get_absolute_time()) - start_time > WIFI_CONNECT_TIMEOUT_MS)
+        {
+            printf("[ERROR] WiFi connection timeout\n");
+            printf("[ERROR] System will reset in 5 seconds...\n");
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            reset();
+        }
+
+        cyw43_arch_poll();
+        status = cyw43_wifi_link_status(&cyw43_state, CYW43_ITF_STA);
+
+        // FreeRTOS 양보
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
+    printf("[INFO] WiFi connected successfully!\n");
+    board_set_wifi_status(1);  // WiFi LED 켜기
 
     AGENT_STATE current_agent_state = WAITING_FOR_AGENT;
     printf("[INFO] Waiting for micro-ROS agent...\n");
@@ -182,17 +231,31 @@ void uros_state_task(void *params) {
 }
 
 int main() {
-    // Initialize stdio FIRST
+    // CRITICAL: stdio MUST be initialized before FreeRTOS
     stdio_init_all();
 
-    // Give stdio time to initialize
-    sleep_ms(2000);
+    // Wait for USB to be ready (important for FreeRTOS!)
+    sleep_ms(3000);
 
-    printf("\n[INFO] ========================================\n");
-    printf("[INFO] Bindbot micro-ROS with FreeRTOS\n");
-    printf("[INFO] ========================================\n");
-    printf("[INFO] FreeRTOS Kernel Version: %s\n", tskKERNEL_VERSION_NUMBER);
-    printf("[INFO] System Clock: %lu Hz\n", clock_get_hz(clk_sys));
+    // Simple LED blink test to verify system is running
+    gpio_init(WIFI_STATUS_PIN);
+    gpio_set_dir(WIFI_STATUS_PIN, GPIO_OUT);
+
+    // Blink 3 times to show we reached here
+    for (int i = 0; i < 3; i++) {
+        gpio_put(WIFI_STATUS_PIN, 1);
+        sleep_ms(200);
+        gpio_put(WIFI_STATUS_PIN, 0);
+        sleep_ms(200);
+    }
+
+    printf("\n");
+    printf("========================================\n");
+    printf("Bindbot micro-ROS with FreeRTOS\n");
+    printf("========================================\n");
+    printf("FreeRTOS Kernel: %s\n", tskKERNEL_VERSION_NUMBER);
+    printf("System Clock: %lu Hz\n", clock_get_hz(clk_sys));
+    printf("Creating tasks...\n");
 
     // Create micro-ROS state task
     BaseType_t task_created = xTaskCreate(
@@ -209,14 +272,30 @@ int main() {
     #endif
 
     if (task_created != pdPASS) {
-        printf("[ERROR] Failed to create micro-ROS state task!\n");
-        return -1;
+        printf("ERROR: Failed to create micro-ROS state task!\n");
+
+        // Blink rapidly to indicate error
+        while(1) {
+            gpio_put(WIFI_STATUS_PIN, 1);
+            sleep_ms(100);
+            gpio_put(WIFI_STATUS_PIN, 0);
+            sleep_ms(100);
+        }
     }
 
-    printf("[INFO] Starting FreeRTOS scheduler...\n");
+    printf("Starting FreeRTOS scheduler...\n");
+    printf("(After this, printf may not work)\n");
+
     vTaskStartScheduler();
 
     // Should never reach here
-    printf("[ERROR] Scheduler failed to start!\n");
-    return -1;
+    printf("FATAL: Scheduler failed to start!\n");
+
+    // Blink very rapidly to indicate fatal error
+    while(1) {
+        gpio_put(WIFI_STATUS_PIN, 1);
+        sleep_ms(50);
+        gpio_put(WIFI_STATUS_PIN, 0);
+        sleep_ms(50);
+    }
 }

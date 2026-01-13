@@ -29,7 +29,7 @@ sudo apt install gcc-arm-none-eabi
 ```bash
 mkdir -p ~/pico-sdk
 cd ~/pico-sdk/lib
-git clone https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+git clone --recurse-submodules https://github.com/FreeRTOS/FreeRTOS-Kernel.git
 
 export PICO_SDK_PATH=/mnt/c/Users/username/path/to/pico-sdk
 ```
@@ -51,6 +51,14 @@ make
 ```
 
 ### 실행
+
+- windows11 에서 `usbipd attach --wsl --busid 2-2 --auto-attach` 명령어로 pico 보드 연결
+- picotool 로 pico 보드에 펌웨어 업로드
+
+```bash
+cd ~/pico/micro_ros_pico_dev/build
+sudo picotool load bindbot.uf2 -f
+```
 
 - `micro-ros-agent udp4 --port 8888 -v 4` 로 agent 실행
 - pico 보드에 전원 연결 후 `minicom -b 115200 -D /dev/ttyACM0` 로 시리얼 모니터링

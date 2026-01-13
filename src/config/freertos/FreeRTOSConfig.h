@@ -31,9 +31,6 @@
 /* RP2040-specific configs */
 #include "rp2040_config.h"
 
-/* RP2350 compatibility */
-#include "rp2350_compat.h"
-
 
 /*-----------------------------------------------------------
  * Application specific definitions.
@@ -161,6 +158,10 @@
 #define INCLUDE_xQueueGetMutexHolder            1
 #define INCLUDE_xSemaphoreGetMutexHolder        1
 
+/* lwIP 호환성을 위한 레거시 매크로 정의 */
+#ifndef portTICK_RATE_MS
+#define portTICK_RATE_MS portTICK_PERIOD_MS
+#endif
 
 /* A header file that defines trace macro can be included here. */
 

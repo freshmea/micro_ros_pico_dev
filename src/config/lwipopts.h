@@ -1,24 +1,24 @@
 #ifndef _LWIPOPTS_H
 #define _LWIPOPTS_H
 
-// Common settings used in most of the pico_w examples
-// (see https://www.nongnu.org/lwip/2_1_x/group__lwip__opts.html for details)
-
-// allow override in some examples
+// pico_cyw43_arch_lwip_threadsafe_background 사용 시
+// NO_SYS=1 (lwIP without OS, 백그라운드 폴링 방식)
 #ifndef NO_SYS
 #define NO_SYS 1
 #endif
-// allow override in some examples
+
+// 소켓 비활성화 (NO_SYS=1 모드)
 #ifndef LWIP_SOCKET
 #define LWIP_SOCKET 0
 #endif
-#if PICO_CYW43_ARCH_POLL
-#define MEM_LIBC_MALLOC 1
-#else
-// MEM_LIBC_MALLOC is incompatible with non polling versions
-#define MEM_LIBC_MALLOC 0
-#endif
-#define MEM_ALIGNMENT 4
+
+// threadsafe_background 모드: 코어 락킹만 사용
+#define LWIP_TCPIP_CORE_LOCKING         1
+#define LWIP_NETCONN                    0
+
+// 메모리 설정
+#define MEM_LIBC_MALLOC                 0  // threadsafe_background에서는 0이어야 함
+#define MEM_ALIGNMENT                   4
 #define MEM_SIZE 4000
 #define MEMP_NUM_TCP_SEG 32
 #define MEMP_NUM_ARP_QUEUE 10

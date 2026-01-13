@@ -16,6 +16,13 @@
 
 #include "pico_wifi_transport.h"
 #include "rcl_check_macros.h"
+#include "pico/cyw43_arch.h"
+#include "cyw43.h"
+#include "FreeRTOS.h"
+#include "task.h"
+
+// cyw43 상태 외부 선언
+extern cyw43_t cyw43_state;
 
 // micro-ROS entities
 static rcl_node_t node;
@@ -144,6 +151,9 @@ static void subscription_callback(const void *msgin)
 
 int uros_app_init(void)
 {
+    // WiFi는 이미 main.c에서 초기화됨
+    printf("[INFO] Initializing micro-ROS...\n");
+
     // Initialize buzzer manager
     buzzer_init(&buzzer_manager);
 

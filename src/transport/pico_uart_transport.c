@@ -1,13 +1,18 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 #include <uxr/client/profile/transport/custom/custom_transport.h>
 
-void usleep(uint64_t us)
+// POSIX microsecond delay function (FreeRTOS compatible)
+int usleep(uint64_t us)
 {
-    sleep_us(us);
+    vTaskDelay(pdMS_TO_TICKS(us / 1000 + (us % 1000 != 0)));
+    return 0;
 }
 
+// POSIX get current time function
 int clock_gettime(clockid_t unused, struct timespec *tp)
 {
     uint64_t m = time_us_64();

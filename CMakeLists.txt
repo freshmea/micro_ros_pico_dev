@@ -11,12 +11,12 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-# Include FreeRTOS Kernel AFTER pico_sdk_init()
-include(FreeRTOS_Kernel_import.cmake)
-
-# FreeRTOS config directory
+# FreeRTOS config directory (must be set before importing FreeRTOS kernel)
 set(FREERTOS_CONFIG_DIR "${CMAKE_CURRENT_LIST_DIR}/src/config/freertos" CACHE STRING "FreeRTOS Config Path")
 include_directories("${FREERTOS_CONFIG_DIR}")
+
+# Include FreeRTOS Kernel AFTER pico_sdk_init() (use official pico-sdk path)
+include(/home/aa/pico/pico-sdk/lib/FreeRTOS-Kernel/portable/ThirdParty/Community-Supported-Ports/GCC/RP2350_ARM_NTZ/FreeRTOS_Kernel_import.cmake)
 
 # Add libfixmath
 add_library(fixmath STATIC
@@ -44,7 +44,7 @@ add_executable(bindbot
 )
 target_link_libraries(bindbot
     pico_stdlib
-    pico_cyw43_arch_lwip_poll
+    pico_cyw43_arch_lwip_poll  # 수동 폴링 모드 (FreeRTOS와 가장 호환성 좋음)
     hardware_pwm
     hardware_clocks
     hardware_irq
@@ -80,3 +80,21 @@ add_compile_definitions(PICO_STDIO_DEFAULT_CRLF=0)
 # Generate UF2
 pico_add_extra_outputs(bindbot)
 
+# RTOS test app (simple tasks + LED toggle on GP0/1/3)
+add_executable(rtos_test
+    src/rtos_test.c
+)
+target_link_libraries(rtos_test
+    pico_stdlib
+    FreeRTOS-Kernel
+    FreeRTOS-Kernel-Heap4
+)
+target_include_directories(rtos_test PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/src
+    ${CMAKE_CURRENT_LIST_DIR}/src/config
+    ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
+)
+pico_enable_stdio_usb(rtos_test 1)
+pico_enable_stdio_uart(rtos_test 1)
+pico_add_extra_outputs(rtos_test)

@@ -8,10 +8,16 @@
 #include "lwip/pbuf.h"
 #include "lwip/udp.h"
 #include "project_config.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "cyw43.h"
 
 // Agent IP and Port are defined in project_config.h
 // #define AGENT_IP "192.168.219.74"
 // #define AGENT_PORT 8888
+
+// cyw43 상태 외부 선언
+extern cyw43_t cyw43_state;
 
 typedef struct
 {
@@ -25,11 +31,15 @@ typedef struct
 
 static wifi_transport_params_t wifi_params = {0};
 
-void usleep(uint64_t us)
+// POSIX microsecond delay function (FreeRTOS compatible)
+// This is CRITICAL for micro-ROS to work properly with FreeRTOS
+int usleep(uint64_t us)
 {
-    sleep_us(us);
+    vTaskDelay(pdMS_TO_TICKS(us / 1000 + (us % 1000 != 0)));
+    return 0;
 }
 
+// POSIX get current time function
 int clock_gettime(clockid_t unused, struct timespec *tp)
 {
     uint64_t m = time_us_64();
@@ -56,12 +66,10 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, co
 
 bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
 {
-    // WiFi는 이미 board_wifi_init()에서 초기화됨
+    // WiFi는 이미 uros_app_init()에서 초기화됨
     // 여기서는 UDP만 설정
-
     printf("[INFO] Setting up UDP transport...\n");
 
-    // UDP 초기화
     wifi_params.pcb = udp_new();
     if (!wifi_params.pcb)
     {
