@@ -80,6 +80,8 @@ int board_wifi_init(void)
         board_set_wifi_status(0);
         return -1;
     }
+    printf("[INFO] WiFi connect async started\n");
+    fflush(stdout);
 
     printf("[INFO] Polling for connection status...\n");
     fflush(stdout);
@@ -149,6 +151,7 @@ int board_wifi_init(void)
     }
 
     printf("[INFO] WiFi connected successfully!\n");
+    fflush(stdout);
 
     // 최종 상태 확인
     int final_status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);

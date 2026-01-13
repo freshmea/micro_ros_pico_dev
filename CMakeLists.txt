@@ -99,6 +99,46 @@ pico_enable_stdio_usb(rtos_test 1)
 pico_enable_stdio_uart(rtos_test 1)
 pico_add_extra_outputs(rtos_test)
 
+# RTOS micro-ROS test app (ROS on core0, peripherals on core1)
+add_executable(rtos_micro_ros_test
+    src/rtos_micro_ros_test.c
+    src/board/board.c
+    src/board/wifi_init.c
+    src/drivers/servo_ctrl.c
+    src/drivers/pico_servo.c
+    src/drivers/passive_buzzer_manager.c
+    src/drivers/touch_sensor.c
+    src/uros/uros_app.c
+    src/transport/pico_wifi_transport.c
+)
+target_link_libraries(rtos_micro_ros_test
+    pico_stdlib
+    pico_cyw43_arch_lwip_poll
+    hardware_pwm
+    hardware_clocks
+    hardware_irq
+    fixmath
+    microros
+    FreeRTOS-Kernel
+    FreeRTOS-Kernel-Heap4
+)
+target_include_directories(rtos_micro_ros_test PUBLIC
+    libmicroros/include
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/src
+    ${CMAKE_CURRENT_LIST_DIR}/src/board
+    ${CMAKE_CURRENT_LIST_DIR}/src/drivers
+    ${CMAKE_CURRENT_LIST_DIR}/src/transport
+    ${CMAKE_CURRENT_LIST_DIR}/src/uros
+    ${CMAKE_CURRENT_LIST_DIR}/src/config
+    ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
+    libfixmath/libfixmath
+)
+target_compile_definitions(rtos_micro_ros_test PUBLIC PROJECT_USE_FREERTOS=1)
+pico_enable_stdio_usb(rtos_micro_ros_test 1)
+pico_enable_stdio_uart(rtos_micro_ros_test 1)
+pico_add_extra_outputs(rtos_micro_ros_test)
+
 # micro-ROS test app
 add_executable(micro_ros_test
     src/micro_ros_test.c
@@ -134,6 +174,7 @@ target_include_directories(micro_ros_test PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
     libfixmath/libfixmath
 )
+target_compile_definitions(micro_ros_test PUBLIC PROJECT_USE_FREERTOS=0)
 pico_enable_stdio_usb(micro_ros_test 1)
 pico_enable_stdio_uart(micro_ros_test 1)
 pico_add_extra_outputs(micro_ros_test)

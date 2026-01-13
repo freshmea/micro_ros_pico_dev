@@ -133,7 +133,9 @@ bool pico_wifi_transport_close(struct uxrCustomTransport *transport)
         udp_remove(wifi_params.pcb);
         wifi_params.pcb = NULL;
     }
+#if !PROJECT_USE_FREERTOS
     cyw43_arch_deinit();
+#endif
     return true;
 }
 

@@ -67,8 +67,11 @@
 
 // ============================================================================
 // FreeRTOS 사용 여부 (1: FreeRTOS, 0: bare metal)
+// (타깃별로 CMake에서 정의할 수 있음)
 // ============================================================================
+#ifndef PROJECT_USE_FREERTOS
 #define PROJECT_USE_FREERTOS 0
+#endif
 
 #if DEBUG_PRINT_ENABLED
 #define DEBUG_PRINTF(...) printf(__VA_ARGS__)

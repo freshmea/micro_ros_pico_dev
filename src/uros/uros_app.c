@@ -179,7 +179,9 @@ int uros_app_init(void)
     const int timeout_ms = AGENT_PING_TIMEOUT_MS;
     const uint8_t attempts = AGENT_PING_ATTEMPTS;
 
+    printf("[INFO] Pinging agent (timeout=%dms, attempts=%u)\n", timeout_ms, attempts);
     rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
+    printf("[INFO] Ping result: %d\n", (int)ret);
 
     if (ret != RCL_RET_OK)
     {
