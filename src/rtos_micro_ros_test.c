@@ -68,7 +68,7 @@ static void ros_task(void *params) {
 
     printf("[INFO] ROS task starting on core %d\n", get_core_num());
 
-    if (board_wifi_init() != 0) {
+    if (pico_wifi_connect() != 0) {
         board_blink_error();
     }
     printf("[INFO] WiFi init done, waiting for agent\n");

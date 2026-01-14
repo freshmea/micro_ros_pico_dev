@@ -34,17 +34,18 @@ link_directories(libmicroros)
 add_executable(bindbot
     src/main.c
     src/board/board.c
-    src/board/wifi_init.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
     src/uros/uros_app.c
     src/transport/pico_wifi_transport.c
+    src/transport/pico_wifi_connect.c
 )
 target_link_libraries(bindbot
     pico_stdlib
     pico_cyw43_arch_lwip_poll  # 수동 폴링 모드 (FreeRTOS와 가장 호환성 좋음)
+    hardware_adc
     hardware_pwm
     hardware_clocks
     hardware_irq
@@ -103,7 +104,6 @@ pico_add_extra_outputs(rtos_test)
 add_executable(rtos_micro_ros_test
     src/rtos_micro_ros_test.c
     src/board/board.c
-    src/board/wifi_init.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
@@ -144,7 +144,6 @@ pico_add_extra_outputs(rtos_micro_ros_test)
 add_executable(micro_ros_test
     src/micro_ros_test.c
     src/board/board.c
-    src/board/wifi_init.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c

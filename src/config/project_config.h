@@ -11,10 +11,18 @@
 // ============================================================================
 // WiFi 설정
 // ============================================================================
+#ifndef WIFI_SSID
 #define WIFI_SSID "bindsoft_805_2.4g"          // WiFi SSID
+#endif
+#ifndef WIFI_PASSWORD
 #define WIFI_PASSWORD "bindsoft805"            // WiFi 비밀번호
+#endif
+#ifndef WIFI_AUTH_MODE
 #define WIFI_AUTH_MODE CYW43_AUTH_WPA2_AES_PSK // WiFi 인증 모드
+#endif
+#ifndef WIFI_CONNECT_TIMEOUT_MS
 #define WIFI_CONNECT_TIMEOUT_MS 30000          // WiFi 연결 타임아웃 (ms)
+#endif
 
 // ============================================================================
 // micro-ROS 에이전트 설정
