@@ -304,7 +304,7 @@ int uros_app_init(void)
         touch_timer_callback,
         true));  // autostart = true
 
-    // Initialize hello publisher (1 Hz) - BEST_EFFORT to tolerate WiFi loss
+    // Use BEST_EFFORT to tolerate WiFi loss and avoid blocking discovery
     rmw_qos_profile_t hello_qos = rmw_qos_profile_default;
     hello_qos.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     hello_qos.durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;

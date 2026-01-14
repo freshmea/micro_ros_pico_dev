@@ -2,6 +2,7 @@
 
 #include "pico/stdlib.h"
 #include "hardware/clocks.h"
+#include "hardware/watchdog.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -13,11 +14,21 @@
 #include "drivers/touch_sensor.h"
 #include "uros/uros_app.h"
 #include "transport/pico_wifi_connect.h"
+#include "transport/pico_wifi_transport.h"
+#include "pico/cyw43_arch.h"
+#include <rmw_microros/rmw_microros.h>
 
 #define ROS_TASK_STACK_SIZE     8192
 #define PERIPH_TASK_STACK_SIZE  2048
 #define ROS_TASK_PRIORITY       (configMAX_PRIORITIES - 2)
 #define PERIPH_TASK_PRIORITY    2
+
+typedef enum {
+    WAITING_FOR_AGENT,
+    AGENT_AVAILABLE,
+    AGENT_CONNECTED,
+    AGENT_DISCONNECTED
+} agent_state_t;
 
 void vApplicationMallocFailedHook(void) {
     printf("[ERROR] Malloc failed\n");
@@ -38,6 +49,18 @@ void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name) {
 
 static TaskHandle_t periph_handle = NULL;
 
+static void reset_system(void) {
+    watchdog_disable();
+    watchdog_enable(1, true);
+    while (1) {
+        tight_loop_contents();
+    }
+}
+
+static bool ping_agent(void) {
+    return rmw_uros_ping_agent(AGENT_PING_TIMEOUT_MS, 1) == RMW_RET_OK;
+}
+
 static void periph_task(void *params);
 
 static void ros_task(void *params) {
@@ -48,32 +71,87 @@ static void ros_task(void *params) {
     if (board_wifi_init() != 0) {
         board_blink_error();
     }
-    printf("[INFO] WiFi init done, starting micro-ROS init\n");
+    printf("[INFO] WiFi init done, waiting for agent\n");
 
-    if (uros_app_init() != 0) {
-        board_blink_error();
-    }
-    printf("[INFO] micro-ROS init done, entering spin loop\n");
+    // Set custom UDP transport BEFORE any ping to the agent
+    rmw_uros_set_custom_transport(
+        false,
+        NULL,
+        pico_wifi_transport_open,
+        pico_wifi_transport_close,
+        pico_wifi_transport_write,
+        pico_wifi_transport_read);
 
-    if (periph_handle == NULL) {
-        xTaskCreate(
-            periph_task,
-            "periph_task",
-            PERIPH_TASK_STACK_SIZE,
-            NULL,
-            PERIPH_TASK_PRIORITY,
-            &periph_handle);
-#if configUSE_CORE_AFFINITY
-        if (periph_handle) {
-            vTaskCoreAffinitySet(periph_handle, (1 << 1));
-        }
-#endif
-    }
+    agent_state_t state = WAITING_FOR_AGENT;
+    int ping_fail_count = 0;
 
     while (true) {
-        uros_app_spin_once();
-        // Tighten poll period to improve XRCE heartbeat/ACK latency
-        vTaskDelay(pdMS_TO_TICKS(1));
+        // Make sure WiFi/lwIP driver progresses even while waiting
+        cyw43_arch_poll();
+
+        switch (state) {
+            case WAITING_FOR_AGENT:
+                if (ping_agent()) {
+                    state = AGENT_AVAILABLE;
+                    ping_fail_count = 0;
+                } else {
+                    if ((++ping_fail_count % 10) == 0) {
+                        printf("[WARN] Agent not reachable (%d attempts)\n", ping_fail_count);
+                    }
+                }
+                break;
+
+            case AGENT_AVAILABLE:
+                printf("[INFO] Agent available, initializing micro-ROS\n");
+                if (uros_app_init() == 0) {
+                    state = AGENT_CONNECTED;
+                    printf("[INFO] micro-ROS init done\n");
+
+                    if (periph_handle == NULL) {
+                        xTaskCreate(
+                            periph_task,
+                            "periph_task",
+                            PERIPH_TASK_STACK_SIZE,
+                            NULL,
+                            PERIPH_TASK_PRIORITY,
+                            &periph_handle);
+        #if configUSE_CORE_AFFINITY
+                        if (periph_handle) {
+                            vTaskCoreAffinitySet(periph_handle, (1 << 1));
+                        }
+        #endif
+                    }
+                } else {
+                    printf("[ERROR] micro-ROS init failed, resetting...\n");
+                    state = AGENT_DISCONNECTED;
+                }
+                break;
+
+            case AGENT_CONNECTED:
+                uros_app_spin_once();
+                if (!ping_agent()) {
+                    printf("[WARN] Agent lost\n");
+                    state = AGENT_DISCONNECTED;
+                }
+                break;
+
+            case AGENT_DISCONNECTED:
+                printf("[INFO] Cleaning up after disconnect\n");
+
+                if (periph_handle != NULL) {
+                    vTaskDelete(periph_handle);
+                    periph_handle = NULL;
+                }
+
+                // Stop executor and free entities
+                uros_app_cleanup();
+
+                // Let watchdog perform a clean reset to re-establish WiFi/agent
+                reset_system();
+                break;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 

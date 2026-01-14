@@ -14,10 +14,6 @@
 #include "semphr.h"
 #include "cyw43.h"
 
-// Agent IP and Port are defined in project_config.h
-// #define AGENT_IP "192.168.219.74"
-// #define AGENT_PORT 8888
-
 // cyw43 상태 외부 선언
 extern cyw43_t cyw43_state;
 
