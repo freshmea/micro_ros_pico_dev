@@ -110,6 +110,7 @@ add_executable(rtos_micro_ros_test
     src/drivers/touch_sensor.c
     src/uros/uros_app.c
     src/transport/pico_wifi_transport.c
+    src/transport/pico_wifi_connect.c
 )
 target_link_libraries(rtos_micro_ros_test
     pico_stdlib
@@ -150,6 +151,7 @@ add_executable(micro_ros_test
     src/drivers/touch_sensor.c
     src/uros/uros_app.c
     src/transport/pico_wifi_transport.c
+    src/transport/pico_wifi_connect.c
 )
 target_link_libraries(micro_ros_test
     pico_stdlib
@@ -178,3 +180,23 @@ target_compile_definitions(micro_ros_test PUBLIC PROJECT_USE_FREERTOS=0)
 pico_enable_stdio_usb(micro_ros_test 1)
 pico_enable_stdio_uart(micro_ros_test 1)
 pico_add_extra_outputs(micro_ros_test)
+
+# pico_micro_ros_example2 (UART transport example)
+add_executable(pico_micro_ros_example2
+    example/pico_micro_ros_example2.c
+    src/transport/pico_uart_transport.c
+)
+target_link_libraries(pico_micro_ros_example2
+    pico_stdlib
+    hardware_pwm
+    microros
+)
+target_include_directories(pico_micro_ros_example2 PUBLIC
+    libmicroros/include
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/src/transport
+)
+target_compile_definitions(pico_micro_ros_example2 PUBLIC UROS_TRANSPORT=serial)
+pico_enable_stdio_usb(pico_micro_ros_example2 1)
+pico_enable_stdio_uart(pico_micro_ros_example2 1)
+pico_add_extra_outputs(pico_micro_ros_example2)

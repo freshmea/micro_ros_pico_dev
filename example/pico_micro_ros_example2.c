@@ -52,7 +52,6 @@ void subscription_callback(const void *msgin)
     {
         gpio_put(LED_PIN, 0);
     }
-    msg.data = msg.data + 3;
 }
 
 int main()
@@ -64,6 +63,7 @@ int main()
         pico_serial_transport_close,
         pico_serial_transport_write,
         pico_serial_transport_read);
+    // stdio_init_all();
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);

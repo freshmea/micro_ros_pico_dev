@@ -5,6 +5,7 @@
 #include "project_config.h"
 #include <stdlib.h>
 #include <time.h>
+#include <stdio.h>
 
 // PWM 관련 변수
 static uint slice_num;
@@ -91,6 +92,12 @@ void buzzer_update(PassiveBuzzerManager *manager, uint64_t currentMillis)
         else
         {
             noTone(manager->buzzerPin); // 휴지표
+        }
+        // 버퍼 확인
+        for (int i = 0; i < manager->queueSize; i++)
+        {
+            MelodyNote *n = &manager->melodyQueue[(manager->queueStart + i) % MAX_NOTES];
+            printf("Note %d: freq=%d, dur=%d, queueSize=%d\n", i, n->frequency, n->duration, manager->queueSize);
         }
     }
 

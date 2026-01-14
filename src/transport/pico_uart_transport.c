@@ -1,14 +1,20 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
+#if PROJECT_USE_FREERTOS
 #include "FreeRTOS.h"
 #include "task.h"
+#endif
 
 #include <uxr/client/profile/transport/custom/custom_transport.h>
 
 // POSIX microsecond delay function (FreeRTOS compatible)
 int usleep(uint64_t us)
 {
+#if PROJECT_USE_FREERTOS
     vTaskDelay(pdMS_TO_TICKS(us / 1000 + (us % 1000 != 0)));
+#else
+    sleep_us(us);
+#endif
     return 0;
 }
 

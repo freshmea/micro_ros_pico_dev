@@ -12,12 +12,16 @@
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/u_int8.h>
 #include <std_msgs/msg/u_int64.h>
+#include <std_msgs/msg/string.h>
 #include <stdio.h>
+
+#include <rosidl_runtime_c/string_functions.h>
 
 #include "pico_wifi_transport.h"
 #include "rcl_check_macros.h"
 #include "pico/cyw43_arch.h"
 #include "cyw43.h"
+#include "pico/unique_id.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
@@ -33,8 +37,12 @@ static rcl_subscription_t subscriber;
 static rcl_subscription_t buzzer_subscriber;
 static rcl_timer_t buzzer_timer;
 static rcl_timer_t touch_timer;
+static rcl_publisher_t hello_publisher;
+static rcl_timer_t hello_timer;
 static std_msgs__msg__Int32 msg_r;
 static std_msgs__msg__Int32MultiArray buzzer_msg;
+static std_msgs__msg__String hello_msg;
+static uint32_t hello_counter = 0;
 
 // Publishers for touch sensors
 static rcl_publisher_t touch_state_publishers[TOUCH_SENSOR_COUNT];  // Bool (pressed/released)
@@ -118,6 +126,23 @@ static void touch_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
     }
 }
 
+// Hello timer callback (1s interval)
+static void hello_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
+{
+    (void)last_call_time;
+    if (timer != NULL)
+    {
+        char buffer[64];
+        hello_counter++;
+        snprintf(buffer, sizeof(buffer), "hellow, pico %u", hello_counter);
+
+        // Assign string
+        rosidl_runtime_c__String__assign(&hello_msg.data, buffer);
+        RCSOFTCHECK(rcl_publish(&hello_publisher, &hello_msg, NULL));
+        DEBUG_PRINTF("[hello] published: %s\n", buffer);
+    }
+}
+
 // Subscription callback
 static void subscription_callback(const void *msgin)
 {
@@ -157,6 +182,7 @@ int uros_app_init(void)
     // Initialize touch sensor manager
     touch_sensor_init(&touch_manager);
 
+    // Set custom transport (WiFi UDP)
     rmw_uros_set_custom_transport(
         false,
         NULL,
@@ -172,12 +198,44 @@ int uros_app_init(void)
     RCCHECK(rcl_init_options_init(&init_options, allocator));
     RCCHECK(rcl_init_options_set_domain_id(&init_options, ROS_DOMAIN_ID));
 
-    // Wait for agent successful ping
+    // Set a fixed non-zero client key (matching known-good working log)
+    // Note: micro-ROS agent accepts arbitrary non-zero keys. A fixed key
+    // avoids any uniqueness/read issues.
+    const uint32_t client_key = 0x179CCBF0;
+    printf("[INFO] Setting client_key: 0x%08lX\n", (unsigned long)client_key);
+    RCCHECK(rmw_uros_options_set_client_key(
+        client_key,
+        rcl_init_options_get_rmw_init_options(&init_options)));
+
+    // Wait for agent successful ping with active polling
     const int timeout_ms = AGENT_PING_TIMEOUT_MS;
     const uint8_t attempts = AGENT_PING_ATTEMPTS;
 
     printf("[INFO] Pinging agent (timeout=%dms, attempts=%u)\n", timeout_ms, attempts);
-    rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
+
+    rcl_ret_t ret = RCL_RET_ERROR;
+    for (int i = 0; i < attempts; i++)
+    {
+        ret = rmw_uros_ping_agent(timeout_ms, 1);  // Single attempt each time
+
+        #if PICO_CYW43_ARCH_POLL
+        cyw43_arch_poll();  // Poll WiFi driver
+        #endif
+
+        if (ret == RCL_RET_OK)
+        {
+            printf("[INFO] Agent ping successful at attempt %d\n", i + 1);
+            break;
+        }
+
+        // Small delay between attempts
+        #if PROJECT_USE_FREERTOS
+        vTaskDelay(pdMS_TO_TICKS(10));
+        #else
+        sleep_ms(10);
+        #endif
+    }
+
     printf("[INFO] Ping result: %d\n", (int)ret);
 
     if (ret != RCL_RET_OK)
@@ -193,25 +251,12 @@ int uros_app_init(void)
 
     RCCHECK(rclc_node_init_default(&node, ROS_NODE_NAME, ROS_NAMESPACE, &support));
 
-    // Initialize servo angle subscriber
-    RCCHECK(rclc_subscription_init_default(
-        &subscriber,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-        "servo_angle"));
+    // ===================================================================
+    // CRITICAL: Initialize Publishers BEFORE Subscribers
+    // This ensures proper DDS Discovery order for late-joining ROS2 nodes
+    // ===================================================================
 
-    // Initialize buzzer subscriber
-    buzzer_msg.data.capacity = 10;
-    buzzer_msg.data.size = 0;
-    buzzer_msg.data.data = (int32_t *)malloc(buzzer_msg.data.capacity * sizeof(int32_t));
-
-    RCCHECK(rclc_subscription_init_default(
-        &buzzer_subscriber,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
-        "buzzer"));
-
-    // Initialize buzzer timer (10ms = 100Hz)
+    // Initialize buzzer timer (10ms = 100Hz) - needed for publisher callbacks
     const unsigned int timer_timeout = 10;
     RCCHECK(rclc_timer_init_default2(
         &buzzer_timer,
@@ -259,8 +304,54 @@ int uros_app_init(void)
         touch_timer_callback,
         true));  // autostart = true
 
-    // Initialize executor with 4 handles (2 subscriptions + 2 timers)
-    RCCHECK(rclc_executor_init(&executor, &support.context, 4, &allocator));
+    // Initialize hello publisher (1 Hz) - BEST_EFFORT to tolerate WiFi loss
+    rmw_qos_profile_t hello_qos = rmw_qos_profile_default;
+    hello_qos.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    hello_qos.durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+    hello_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+    hello_qos.depth = 10;
+
+    RCCHECK(rclc_publisher_init(
+        &hello_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String),
+        "message_publisher",
+        &hello_qos));
+
+    rosidl_runtime_c__String__init(&hello_msg.data);
+
+    const unsigned int hello_timer_timeout = 1000;
+    RCCHECK(rclc_timer_init_default2(
+        &hello_timer,
+        &support,
+        RCL_MS_TO_NS(hello_timer_timeout),
+        hello_timer_callback,
+        true)); // autostart = true
+
+    // ===================================================================
+    // NOW initialize Subscribers AFTER all Publishers
+    // ===================================================================
+
+    // Initialize servo angle subscriber
+    RCCHECK(rclc_subscription_init_default(
+        &subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+        "servo_angle"));
+
+    // Initialize buzzer subscriber
+    buzzer_msg.data.capacity = 10;
+    buzzer_msg.data.size = 0;
+    buzzer_msg.data.data = (int32_t *)malloc(buzzer_msg.data.capacity * sizeof(int32_t));
+
+    RCCHECK(rclc_subscription_init_default(
+        &buzzer_subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
+        "buzzer"));
+
+    // Initialize executor with 5 handles (2 subscriptions + 3 timers)
+    RCCHECK(rclc_executor_init(&executor, &support.context, 5, &allocator));
 
     RCCHECK(rclc_executor_add_subscription(
         &executor,
@@ -278,6 +369,10 @@ int uros_app_init(void)
 
     RCCHECK(rclc_executor_add_timer(&executor, &buzzer_timer));
     RCCHECK(rclc_executor_add_timer(&executor, &touch_timer));
+    RCCHECK(rclc_executor_add_timer(&executor, &hello_timer));
+
+    // Ensure XRCE session state is synced before spinning (helps late joiners)
+    rmw_uros_sync_session(1000);
 
     board_set_onboard_led(1);
 
@@ -289,12 +384,14 @@ void uros_app_run(void)
 {
     while (true)
     {
+        cyw43_arch_poll();
         RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(EXECUTOR_SPIN_TIMEOUT_MS)));
     }
 }
 
 void uros_app_spin_once(void)
 {
+    cyw43_arch_poll();
     RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(EXECUTOR_SPIN_TIMEOUT_MS)));
 }
 
@@ -315,6 +412,11 @@ void uros_app_cleanup(void)
     // Clean up subscriptions
     RCSOFTCHECK(rcl_subscription_fini(&buzzer_subscriber, &node));
     RCSOFTCHECK(rcl_subscription_fini(&subscriber, &node));
+
+    // Cleanup hello timer/publisher
+    RCSOFTCHECK(rcl_timer_fini(&hello_timer));
+    RCSOFTCHECK(rcl_publisher_fini(&hello_publisher, &node));
+    rosidl_runtime_c__String__fini(&hello_msg.data);
 
     RCSOFTCHECK(rcl_node_fini(&node));
 

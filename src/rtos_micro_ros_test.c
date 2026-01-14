@@ -12,6 +12,7 @@
 #include "drivers/passive_buzzer_manager.h"
 #include "drivers/touch_sensor.h"
 #include "uros/uros_app.h"
+#include "transport/pico_wifi_connect.h"
 
 #define ROS_TASK_STACK_SIZE     8192
 #define PERIPH_TASK_STACK_SIZE  2048
@@ -71,7 +72,8 @@ static void ros_task(void *params) {
 
     while (true) {
         uros_app_spin_once();
-        vTaskDelay(pdMS_TO_TICKS(5));
+        // Tighten poll period to improve XRCE heartbeat/ACK latency
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
@@ -108,15 +110,6 @@ static void periph_task(void *params) {
         buzzer_update(&buzzer, now_ms);
         buzzer_check_button(&buzzer);
 
-        // if ((xTaskGetTickCount() - last_led_toggle) >= pdMS_TO_TICKS(500)) {
-        //     last_led_toggle = xTaskGetTickCount();
-        //     led_state = !led_state;
-        //     board_set_wifi_status(led_state);
-        //     board_set_msg_status(!led_state);
-        //     board_set_pwm_led(led_state);
-        //     printf("[core %d] LED toggle: %d\n", get_core_num(), led_state ? 1 : 0);
-        // }
-
         vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
@@ -132,6 +125,8 @@ int main(void) {
     printf("System Clock: %lu Hz\n", clock_get_hz(clk_sys));
 
     TaskHandle_t ros_handle = NULL;
+
+    // pico_wifi_connect();
 
     xTaskCreate(
         ros_task,

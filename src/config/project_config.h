@@ -19,7 +19,7 @@
 // ============================================================================
 // micro-ROS 에이전트 설정
 // ============================================================================
-#define AGENT_IP "192.168.219.61"  // micro-ROS agent IP 주소
+#define AGENT_IP "192.168.219.49"  // micro-ROS agent IP 주소
 #define AGENT_PORT 8888            // micro-ROS agent 포트
 #define AGENT_PING_TIMEOUT_MS 1000 // Agent ping 타임아웃 (ms)
 #define AGENT_PING_ATTEMPTS 120    // Agent ping 시도 횟수
@@ -72,7 +72,7 @@
 // (타깃별로 CMake에서 정의할 수 있음)
 // ============================================================================
 #ifndef PROJECT_USE_FREERTOS
-#define PROJECT_USE_FREERTOS 0
+#define PROJECT_USE_FREERTOS 1
 #endif
 
 #if DEBUG_PRINT_ENABLED

@@ -22,8 +22,14 @@ import time
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from std_msgs.msg import Bool, UInt8, UInt64
 
+qos = QoSProfile(
+    depth=5,
+    reliability=QoSReliabilityPolicy.BEST_EFFORT,
+    durability=QoSDurabilityPolicy.VOLATILE
+)
 
 class TouchSensorMonitor(Node):
     def __init__(self):
@@ -44,9 +50,9 @@ class TouchSensorMonitor(Node):
             self.state_subscribers.append(
                 self.create_subscription(
                     Bool,
-                    f'touch_{i}/state',
+                    f'/touch_{i}/state',
                     lambda msg, idx=i-1: self.state_callback(msg, idx),
-                    10
+                    qos
                 )
             )
 
@@ -54,9 +60,9 @@ class TouchSensorMonitor(Node):
             self.beep_subscribers.append(
                 self.create_subscription(
                     UInt8,
-                    f'touch_{i}/beep_count',
+                    f'/touch_{i}/beep_count',
                     lambda msg, idx=i-1: self.beep_callback(msg, idx),
-                    10
+                    qos
                 )
             )
 
@@ -64,9 +70,9 @@ class TouchSensorMonitor(Node):
             self.duration_subscribers.append(
                 self.create_subscription(
                     UInt64,
-                    f'touch_{i}/duration',
+                    f'/touch_{i}/duration',
                     lambda msg, idx=i-1: self.duration_callback(msg, idx),
-                    10
+                    qos
                 )
             )
 

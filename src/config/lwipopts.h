@@ -41,6 +41,21 @@
 #define LINK_STATS 0
 // #define ETH_PAD_SIZE                2
 #define LWIP_CHKSUM_ALGORITHM 3
+
+// CRITICAL FIX: Disable hardware checksum offload for CYW43
+// The CYW43 WiFi chip on Pico W doesn't properly support hardware checksum offload
+// Force software checksum calculation to fix "bad udp cksum" errors
+#define CHECKSUM_GEN_IP                 1
+#define CHECKSUM_GEN_UDP                1
+#define CHECKSUM_GEN_TCP                1
+#define CHECKSUM_GEN_ICMP               1
+#define CHECKSUM_GEN_ICMP6              1
+#define CHECKSUM_CHECK_IP               1
+#define CHECKSUM_CHECK_UDP              1
+#define CHECKSUM_CHECK_TCP              1
+#define CHECKSUM_CHECK_ICMP             1
+#define CHECKSUM_CHECK_ICMP6            1
+
 #define LWIP_DHCP 1
 #define LWIP_IPV4 1
 #define LWIP_TCP 1
