@@ -4,12 +4,20 @@
 
 #include <rcl/error_handling.h>
 #include <std_msgs/msg/float32.h>
+#include <std_msgs/msg/int32.h>
+#include <std_msgs/msg/string.h>
+
+#include <rosidl_runtime_c/string_functions.h>
 
 #include "FreeRTOS.h"
 #include "hardware/adc.h"
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
 #include "task.h"
+
+#include "board.h"
+#include "project_config.h"
+#include "servo_ctrl.h"
 
 #include "pico_wifi_connect.h"
 #include "pico_wifi_transport.h"
@@ -18,17 +26,55 @@
 
 static rcl_publisher_t publisher;
 static std_msgs__msg__Float32 msg;
-
-static rcl_timer_t timer;
 static rcl_node_t node;
 static rcl_allocator_t allocator;
 static rclc_support_t support;
 static rclc_executor_t executor;
+static rcl_subscription_t subscriber;
+static std_msgs__msg__Int32 msg_r;
 
-static void timer_callback(rcl_timer_t *timer, int64_t last_call_time) {
+static rcl_publisher_t hello_publisher;
+static rcl_timer_t hello_timer;
+static std_msgs__msg__String hello_msg;
+static uint32_t hello_counter = 0;
+
+
+static void hello_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
+{
     (void)last_call_time;
+    if (timer != NULL)
+    {
+        char buffer[64];
+        hello_counter++;
+        snprintf(buffer, sizeof(buffer), "hellow, pico %u", hello_counter);
 
-    RCSOFTCHECK(rcl_publish(&publisher, &msg, NULL));
+        rosidl_runtime_c__String__assign(&hello_msg.data, buffer);
+        RCSOFTCHECK(rcl_publish(&hello_publisher, &hello_msg, NULL));
+        DEBUG_PRINTF("[hello] published: %s\n", buffer);
+    }
+}
+
+static void servo_callback(const void *msgin)
+{
+    const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msgin;
+
+    board_set_msg_status(1);
+
+    if (msg->data % 2 == 0)
+    {
+        board_set_onboard_led(1);
+        board_set_pwm_led(1);
+    }
+    else
+    {
+        board_set_onboard_led(0);
+        board_set_pwm_led(0);
+    }
+
+    servo_ctrl_move_to_angle(SERVO_PIN, msg->data);
+
+    sleep_ms(MSG_STATUS_PULSE_MS);
+    board_set_msg_status(0);
 }
 
 int uros_main_init(void) {
@@ -85,20 +131,49 @@ int uros_main_init(void) {
                                 ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
                                 "picow_publisher");
 
-    rclc_timer_init_default2(&timer, &support, RCL_MS_TO_NS(1000), timer_callback, true);
+    rmw_qos_profile_t hello_qos = rmw_qos_profile_default;
+    hello_qos.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+    hello_qos.durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+    hello_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+    hello_qos.depth = 10;
 
-    rclc_executor_init(&executor, &support.context, 1, &allocator);
-    rclc_executor_add_timer(&executor, &timer);
+    RCCHECK(rclc_publisher_init(
+        &hello_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String),
+        "message_publisher",
+        &hello_qos));
+
+    rosidl_runtime_c__String__init(&hello_msg.data);
+
+    RCCHECK(rclc_timer_init_default2(
+        &hello_timer,
+        &support,
+        RCL_MS_TO_NS(1000),
+        hello_timer_callback,
+        true));
+
+    RCCHECK(rclc_subscription_init_default(
+        &subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+        "servo_angle"));
+
+    rclc_executor_init(&executor, &support.context, 2, &allocator);
+    rclc_executor_add_timer(&executor, &hello_timer);
+    rclc_executor_add_subscription(
+        &executor,
+        &subscriber,
+        &msg_r,
+        &servo_callback,
+        ON_NEW_DATA);
 
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
 
-    msg.data = 0.0f;
     return 0;
 }
 
 void uros_main_run(void) {
-    msg.data = 0.0f;
-
     while (true) {
         rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
 
@@ -115,8 +190,11 @@ void uros_main_spin_once(void) {
 }
 
 void uros_main_cleanup(void) {
-    RCSOFTCHECK(rcl_timer_fini(&timer));
     RCSOFTCHECK(rcl_publisher_fini(&publisher, &node));
+    RCSOFTCHECK(rcl_timer_fini(&hello_timer));
+    RCSOFTCHECK(rcl_publisher_fini(&hello_publisher, &node));
+    rosidl_runtime_c__String__fini(&hello_msg.data);
+    RCSOFTCHECK(rcl_subscription_fini(&subscriber, &node));
     RCSOFTCHECK(rcl_node_fini(&node));
     cyw43_arch_deinit();
 }

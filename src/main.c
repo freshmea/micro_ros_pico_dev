@@ -39,16 +39,6 @@ static void ros_task(void *params) {
         vTaskDelete(NULL);
     }
 
-    if (periph_handle == NULL) {
-        printf("[INFO] Starting periph task after WiFi init\n");
-        xTaskCreate(periph_task, "periph_task", PERIPH_TASK_STACK_SIZE, NULL, PERIPH_TASK_PRIORITY, &periph_handle);
-#if configUSE_CORE_AFFINITY
-        if (periph_handle) {
-            vTaskCoreAffinitySet(periph_handle, (1 << 1));
-        }
-#endif
-    }
-    vTaskDelay(pdMS_TO_TICKS(1000));
     uros_main_run();
     uros_main_cleanup();
     vTaskDelete(NULL);
@@ -109,9 +99,14 @@ int main(void) {
     TaskHandle_t ros_handle = NULL;
     xTaskCreate(ros_task, "ros_task", ROS_TASK_STACK_SIZE, NULL, ROS_TASK_PRIORITY, &ros_handle);
 
+    xTaskCreate(periph_task, "periph_task", PERIPH_TASK_STACK_SIZE, NULL, PERIPH_TASK_PRIORITY, &periph_handle);
+
 #if configUSE_CORE_AFFINITY
     if (ros_handle) {
         vTaskCoreAffinitySet(ros_handle, (1 << 0));
+    }
+    if (periph_handle) {
+        vTaskCoreAffinitySet(periph_handle, (1 << 1));
     }
 #endif
 
