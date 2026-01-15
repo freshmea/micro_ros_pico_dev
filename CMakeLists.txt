@@ -38,7 +38,7 @@ add_executable(bindbot
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
-    src/uros/uros_app.c
+    src/uros/uros_main.c
     src/transport/pico_wifi_transport.c
     src/transport/pico_wifi_connect.c
 )

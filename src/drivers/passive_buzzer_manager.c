@@ -222,7 +222,6 @@ bool buzzer_is_queue_full(PassiveBuzzerManager *manager)
 void buzzer_check_button(PassiveBuzzerManager *manager)
 {
     bool currentButtonState = !gpio_get(manager->buttonPin); // 풀업이므로 반전
-
     // 버튼이 눌렸을 때 (rising edge)
     if (currentButtonState && !manager->lastButtonState)
     {
