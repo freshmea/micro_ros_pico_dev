@@ -51,6 +51,7 @@ static pwm_config slice_cfg[8];
 static uint min_us = SERVO_MIN_US;
 static uint max_us = SERVO_MAX_US;
 static fix16_t us_per_unit = 0.f;
+static bool pwm_irq_initialized = false;
 
 static void wrap_cb(void)
 {
@@ -99,6 +100,11 @@ void servo_set_bounds(uint a, uint b)
  */
 int servo_init(void)
 {
+    if (pwm_irq_initialized)
+    {
+        return 0;
+    }
+
     for (int i = 0; i < 30; ++i)
     {
         slice_map[i] = -1;
@@ -109,6 +115,7 @@ int servo_init(void)
     // irq_add_shared_handler(PWM_IRQ_WRAP, wrap_cb, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY); wifi irq shared handler와 충돌하는 문제 발생
     irq_set_exclusive_handler(PWM_IRQ_WRAP, wrap_cb);
     irq_set_enabled(PWM_IRQ_WRAP, true);
+    pwm_irq_initialized = true;
 
     return 0;
 }
@@ -201,7 +208,12 @@ int servo_attach(uint pin)
 
     ++slice_active[slice];
 
-    irq_set_enabled(PWM_IRQ_WRAP, true);
+    if (!pwm_irq_initialized)
+    {
+        irq_set_exclusive_handler(PWM_IRQ_WRAP, wrap_cb);
+        irq_set_enabled(PWM_IRQ_WRAP, true);
+        pwm_irq_initialized = true;
+    }
 
     return 0;
 }

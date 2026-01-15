@@ -33,7 +33,9 @@ static rcl_allocator_t allocator;
 static rclc_support_t support;
 static rclc_executor_t executor;
 static rcl_subscription_t subscriber;
+static rcl_subscription_t subscriber2;
 static std_msgs__msg__Int32 msg_r;
+static std_msgs__msg__Int32 msg_r2;
 
 static rcl_publisher_t hello_publisher;
 static rcl_timer_t hello_timer;
@@ -91,6 +93,13 @@ static void servo_callback(const void *msgin)
 
     sleep_ms(MSG_STATUS_PULSE_MS);
     board_set_msg_status(0);
+}
+
+static void servo2_callback(const void *msgin)
+{
+    const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msgin;
+
+    servo_ctrl_move_to_angle(SERVO_PIN2, msg->data);
 }
 
 int uros_main_init(void) {
@@ -187,8 +196,14 @@ int uros_main_init(void) {
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
         "servo_angle"));
-    // Initialize executor with 3 handles (1 subscription + 2 timers)
-    rclc_executor_init(&executor, &support.context, 3, &allocator);
+
+    RCCHECK(rclc_subscription_init_default(
+        &subscriber2,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+        "servo2_angle"));
+    // Initialize executor with 4 handles (2 subscriptions + 2 timers)
+    rclc_executor_init(&executor, &support.context, 4, &allocator);
     rclc_executor_add_timer(&executor, &hello_timer);
     rclc_executor_add_timer(&executor, &touch_timer);
     rclc_executor_add_subscription(
@@ -196,6 +211,12 @@ int uros_main_init(void) {
         &subscriber,
         &msg_r,
         &servo_callback,
+        ON_NEW_DATA);
+    rclc_executor_add_subscription(
+        &executor,
+        &subscriber2,
+        &msg_r2,
+        &servo2_callback,
         ON_NEW_DATA);
 
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
@@ -226,6 +247,7 @@ void uros_main_cleanup(void) {
     RCSOFTCHECK(rcl_timer_fini(&hello_timer));
     RCSOFTCHECK(rcl_publisher_fini(&hello_publisher, &node));
     rosidl_runtime_c__String__fini(&hello_msg.data);
+    RCSOFTCHECK(rcl_subscription_fini(&subscriber2, &node));
     RCSOFTCHECK(rcl_subscription_fini(&subscriber, &node));
     RCSOFTCHECK(rcl_node_fini(&node));
     cyw43_arch_deinit();

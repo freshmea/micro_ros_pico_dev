@@ -45,6 +45,7 @@
 #define WIFI_STATUS_PIN 0 // GP0: WiFi 연결 상태 LED
 #define MSG_STATUS_PIN 1  // GP1: 메시지 수신 표시 LED
 #define SERVO_PIN 2       // GP2: 서보 제어 PWM 출력
+#define SERVO_PIN2 4      // GP4: 두번째 서보 제어 PWM 출력
 #define PWM_LED_PIN 3     // GP3: 짝수/홀수 표시 LED
 #define PULLUP_BUTTON_PIN 17 // GP17: 풀업 버튼 입력
 #define BUZZER_PIN 16    // GP16: 수동 버저 출력

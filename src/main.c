@@ -58,6 +58,10 @@ static void periph_task(void *params) {
         board_blink_error();
     }
 
+    if (servo_ctrl_init(SERVO_PIN2) != 0) {
+        board_blink_error();
+    }
+
     TickType_t last_led_toggle = xTaskGetTickCount();
     bool led_state = false;
 
