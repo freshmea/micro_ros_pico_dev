@@ -106,8 +106,9 @@ int servo_init(void)
     memset(slice_active, 0, 8 * sizeof(uint));
     memset(servo_pos, 0, 32 * sizeof(uint));
     memset(servo_pos_buf, 0, 16 * sizeof(uint));
-
-    irq_add_shared_handler(PWM_IRQ_WRAP, wrap_cb, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+    // irq_add_shared_handler(PWM_IRQ_WRAP, wrap_cb, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY); wifi irq shared handler와 충돌하는 문제 발생
+    irq_set_exclusive_handler(PWM_IRQ_WRAP, wrap_cb);
+    irq_set_enabled(PWM_IRQ_WRAP, true);
 
     return 0;
 }
@@ -225,7 +226,6 @@ int servo_move_to(uint pin, uint angle)
                        fix16_from_int(max - min))) +
                min;
 
-    printf("Servo move to: pin=%d, angle=%d, val=%d\n", pin, angle, val);
     uint pos = slice_map[pin] + (pin % 2);
     servo_pos[16 * servo_pos_buf[pos] + pos] = val;
     servo_pos_buf[pos] = (servo_pos_buf[pos] + 1) % 2;
