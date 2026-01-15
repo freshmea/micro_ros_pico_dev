@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include <rcl/error_handling.h>
+#include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int32.h>
 #include <std_msgs/msg/string.h>
@@ -15,6 +16,7 @@
 #include "pico/stdlib.h"
 #include "task.h"
 
+#include "app_state.h"
 #include "board.h"
 #include "project_config.h"
 #include "servo_ctrl.h"
@@ -38,6 +40,10 @@ static rcl_timer_t hello_timer;
 static std_msgs__msg__String hello_msg;
 static uint32_t hello_counter = 0;
 
+static rcl_publisher_t touch_state_publisher;
+static rcl_timer_t touch_timer;
+static std_msgs__msg__Bool touch_state_msg;
+
 
 static void hello_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
@@ -51,6 +57,16 @@ static void hello_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
         rosidl_runtime_c__String__assign(&hello_msg.data, buffer);
         RCSOFTCHECK(rcl_publish(&hello_publisher, &hello_msg, NULL));
         DEBUG_PRINTF("[hello] published: %s\n", buffer);
+    }
+}
+
+static void touch_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
+{
+    (void)last_call_time;
+    if (timer != NULL)
+    {
+        touch_state_msg.data = touch_sensor_is_held(&touch, 0);
+        RCSOFTCHECK(rcl_publish(&touch_state_publisher, &touch_state_msg, NULL));
     }
 }
 
@@ -153,14 +169,28 @@ int uros_main_init(void) {
         hello_timer_callback,
         true));
 
+    RCCHECK(rclc_publisher_init_default(
+        &touch_state_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+        "touch_1/state"));
+
+    RCCHECK(rclc_timer_init_default2(
+        &touch_timer,
+        &support,
+        RCL_MS_TO_NS(10),
+        touch_timer_callback,
+        true));
+
     RCCHECK(rclc_subscription_init_default(
         &subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
         "servo_angle"));
-
-    rclc_executor_init(&executor, &support.context, 2, &allocator);
+    // Initialize executor with 3 handles (1 subscription + 2 timers)
+    rclc_executor_init(&executor, &support.context, 3, &allocator);
     rclc_executor_add_timer(&executor, &hello_timer);
+    rclc_executor_add_timer(&executor, &touch_timer);
     rclc_executor_add_subscription(
         &executor,
         &subscriber,
@@ -191,6 +221,8 @@ void uros_main_spin_once(void) {
 
 void uros_main_cleanup(void) {
     RCSOFTCHECK(rcl_publisher_fini(&publisher, &node));
+    RCSOFTCHECK(rcl_timer_fini(&touch_timer));
+    RCSOFTCHECK(rcl_publisher_fini(&touch_state_publisher, &node));
     RCSOFTCHECK(rcl_timer_fini(&hello_timer));
     RCSOFTCHECK(rcl_publisher_fini(&hello_publisher, &node));
     rosidl_runtime_c__String__fini(&hello_msg.data);

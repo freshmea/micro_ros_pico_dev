@@ -5,6 +5,7 @@
 #include "task.h"
 
 #include "board/board.h"
+#include "app_state.h"
 #include "pico/cyw43_arch.h"
 #include "drivers/passive_buzzer_manager.h"
 #include "drivers/touch_sensor.h"
@@ -18,6 +19,9 @@
 #define PERIPH_TASK_STACK_SIZE 8192 // 32kb
 #define ROS_TASK_PRIORITY (configMAX_PRIORITIES - 2)
 #define PERIPH_TASK_PRIORITY 2
+
+PassiveBuzzerManager buzzer;
+TouchSensorManager touch;
 
 // Minimal FreeRTOS hook implementations (required when linking FreeRTOS)
 void vApplicationMallocFailedHook(void) { configASSERT(0); }
@@ -47,38 +51,30 @@ static void ros_task(void *params) {
 static void periph_task(void *params) {
     (void)params;
 
-    printf("[INFO] Periph task starting on core %d\n", get_core_num());
-
-    PassiveBuzzerManager buzzer;
-    // TouchSensorManager touch;
-
     buzzer_init(&buzzer);
-    // touch_sensor_init(&touch);
+    touch_sensor_init(&touch);
 
     if (servo_ctrl_init(SERVO_PIN) != 0) {
         board_blink_error();
     }
 
-    // TickType_t last_led_toggle = xTaskGetTickCount();
-    // bool led_state = false;
+    TickType_t last_led_toggle = xTaskGetTickCount();
+    bool led_state = false;
 
     while (true) {
         uint64_t now_ms = to_ms_since_boot(get_absolute_time());
 
-        // touch_sensor_update(&touch, now_ms);
+        touch_sensor_update(&touch, now_ms);
 
-        // for (int i = 0; i < TOUCH_SENSOR_COUNT; i++) {
-        //     if (touch_sensor_is_pressed(&touch, i)) {
-        //         printf("[core %d] Touch %d pressed\n", get_core_num(), i + 1);
-        //         buzzer_play_beep(&buzzer, 1200, 100);
-        //     }
-        // }
+        for (int i = 0; i < TOUCH_SENSOR_COUNT; i++) {
+            if (touch_sensor_is_pressed(&touch, i)) {
+                printf("[core %d] Touch %d pressed\n", get_core_num(), i + 1);
+                buzzer_play_beep(&buzzer, 1200, 100);
+            }
+        }
 
         buzzer_update(&buzzer, now_ms);
         buzzer_check_button(&buzzer);
-        if (now_ms % 50 == 0) {
-            printf("[INFO] Periph task loop on core %d time : %llu \n", get_core_num(), now_ms);
-        }
 
         vTaskDelay(pdMS_TO_TICKS(20));
     }
