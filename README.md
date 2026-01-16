@@ -193,6 +193,9 @@ sudo picotool load bindbot.uf2 -f
 - RTOS/micro-ROS 각각 연결 성공
 - 서보 모터 드라이버 개선
 - RTOS 로직 보완 필요 사항 확인
+- esp32 예제 코드 참고하여 RTOS/micro-ROS 통합 구조 분석
+  - esp32 에서는 wifi 라이브러리가 표준 규격(POSIX) 으로 제공되지만 pico 2w 에서는 아님
+  - custom_wifi_transport.c 를 직접 만들 필요가 있음 -> 잘 만들지 않으면 오류 발생이 큼
 
 ## 2026_01_14
 
@@ -215,3 +218,21 @@ sudo picotool load bindbot.uf2 -f
 - rtos 에서 wifi 와 pwm 제어가 동시에 잘 되지 않는 점 문제 해결
   - irq 중복 초기화되어 hardware crash 발생 문제 수정
   - shared 구조에서 exclusive 로 따로 irq 설정 변경(wifi-> shared, pwm-> exclusive)
+
+## 2026_01_16
+
+- 문서 업데이트
+- 주변 정리 및 부품 정리
+- 추가 부품 구입
+  - 핀헤더 소켓 2.54mm 수 일자형 1X40P 5개
+  - 아두이노 L9110s 모터 드라이버 2채널
+  - 아두이노 TTP223 터치 센서 모듈
+  - MPU6050 6축 자이로 가속도 센서 모듈
+  - 아두이노 OLED 0.91인치 SSD1306 I2C 128x32 WHITE
+  - TP4056 리튬 배터리 1A 충전 보호회로 USB C-Type
+- 디스플레이 추가 예정
+- 충전 모듈 및 배터리 추가 예정
+- 자이로, DC 모터 드라이버 추가 예정
+- 케이스 디자인 및 3D 프린팅 예정
+
+---
