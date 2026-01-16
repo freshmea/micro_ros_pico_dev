@@ -15,6 +15,9 @@ Touch Sensors:
 
 ## 🎯 주요 기능
 
+> 참고: 최신 런타임(`uros_main`)에서는 **`touch_1/state`만 publish**합니다.
+> `touch_X/beep_count`, `touch_X/duration` 퍼블리시는 `uros_app` 참고 구현에 포함되어 있습니다.
+
 ### 1. 자동 비프음
 
 - 터치 센서가 눌리면 자동으로 비프음 재생 (1000Hz, 100ms)
@@ -51,7 +54,8 @@ Touch Sensors:
 
 ### 통합 파일
 
-- **`src/uros/uros_app.c`**: micro-ROS 애플리케이션 (업데이트)
+- **`src/uros/uros_app.c`**: 전체 토픽 퍼블리시 참고 구현
+- **`src/uros/uros_main.c`**: 런타임에서 `touch_1/state`만 publish
 
 ### 테스트 파일
 
@@ -241,6 +245,8 @@ void touch_sensor_increment_beep_count(TouchSensorManager *manager, uint8_t inde
 | Touch 1 (GP18) | `/touch_1/state` | `/touch_1/beep_count` | `/touch_1/duration` |
 | Touch 2 (GP19) | `/touch_2/state` | `/touch_2/beep_count` | `/touch_2/duration` |
 | Touch 3 (GP20) | `/touch_3/state` | `/touch_3/beep_count` | `/touch_3/duration` |
+
+> 현재 `uros_main`에서는 `touch_1/state`만 publish됩니다.
 
 ## ⚙️ 설정
 

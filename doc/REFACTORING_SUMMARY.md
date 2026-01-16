@@ -9,15 +9,24 @@
 ```text
 src/
 ├── main.c                          # 메인 진입점
+├── app_state.h                     # 전역 매니저 공유
 ├── board/
 │   ├── board.h                     # 보드 초기화 및 GPIO 제어 인터페이스
 │   └── board.c                     # 보드 초기화 및 GPIO 제어 구현
 ├── drivers/
 │   ├── servo_ctrl.h                # 서보 모터 제어 인터페이스
 │   └── servo_ctrl.c                # 서보 모터 제어 구현
+│   ├── pico_servo.h                 # 서보 저수준 드라이버
+│   ├── pico_servo.c
+│   ├── passive_buzzer_manager.h     # 패시브 버저 매니저
+│   ├── passive_buzzer_manager.c
+│   ├── touch_sensor.h               # 터치 센서 드라이버
+│   └── touch_sensor.c
 └── uros/
-    ├── uros_app.h                  # micro-ROS 애플리케이션 인터페이스
-    └── uros_app.c                  # micro-ROS 애플리케이션 구현
+    ├── uros_main.h                 # micro-ROS 런타임 인터페이스
+    ├── uros_main.c                 # micro-ROS 런타임 구현
+    ├── uros_app.h                  # 참고용 전체 기능 인터페이스
+    └── uros_app.c                  # 참고용 전체 기능 구현
 ```
 
 ## 각 모듈의 책임
@@ -38,11 +47,12 @@ src/
 - `board_set_onboard_led()` - 온보드 LED 제어
 - `board_blink_error()` - 에러 표시
 
-### 2. **drivers/servo_ctrl 모듈** (서보 모터 드라이버)
+### 2. **drivers 모듈** (서보/버저/터치 드라이버)
 
 - 서보 모터 초기화 (PWM, bounds 설정)
 - 각도 기반 서보 제어 인터페이스
-- 저수준 servo 라이브러리 캡슐화
+- 버저 재생/버튼 처리
+- 터치 센서 상태/지속시간 관리
 
 **함수:**
 
@@ -52,11 +62,8 @@ src/
 
 ### 3. **uros 모듈** (micro-ROS 애플리케이션)
 
-- WiFi 전송 계층 설정
-- micro-ROS agent 연결
-- ROS2 노드 및 구독자 생성
-- 메시지 수신 콜백 처리
-- LED 및 서보 제어 로직
+- `uros_main`: 런타임 노드/토픽 구성
+- `uros_app`: 전체 기능 참고용 구현
 
 **함수:**
 
@@ -64,11 +71,10 @@ src/
 - `uros_app_run()` - 메인 실행 루프
 - `uros_app_cleanup()` - 리소스 정리
 
-### 4. **main.c** (애플리케이션 진입점)
+### 4. **main.c** (FreeRTOS 태스크 구성)
 
-- 각 모듈의 초기화 순서 관리
-- 에러 처리
-- 메인 루프 실행
+- `ros_task`/`periph_task` 분리
+- core0/1 어피니티 설정
 
 ## CMakeLists.txt 변경사항
 
@@ -77,17 +83,19 @@ src/
 set(PICO_BOARD pico2_w CACHE STRING "Board type")
 
 # 모듈화된 소스 파일 추가
-add_executable(pico_micro_ros_example
+add_executable(bindbot
     src/main.c
     src/board/board.c
     src/drivers/servo_ctrl.c
-    src/uros/uros_app.c
-    pico_wifi_transport.c
-    pico_servo.c
+    src/drivers/pico_servo.c
+    src/drivers/passive_buzzer_manager.c
+    src/drivers/touch_sensor.c
+    src/uros/uros_main.c
+    src/transport/pico_wifi_transport.c
 )
 
 # 새로운 include 디렉토리 추가
-target_include_directories(pico_micro_ros_example PUBLIC
+target_include_directories(bindbot PUBLIC
     libmicroros/include
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/src
@@ -109,8 +117,8 @@ make -j4
 
 **빌드 결과:**
 
-- ✅ `pico_micro_ros_example.elf` (2.2MB)
-- ✅ `pico_micro_ros_example.uf2` (788KB)
+- ✅ `bindbot.elf`
+- ✅ `bindbot.uf2`
 - ✅ 모든 모듈이 정상적으로 컴파일됨
 - ✅ 분할 컴파일 지원
 
@@ -127,13 +135,12 @@ make -j4
 
 ```text
 main.c
-  ├─> board (board.h/c)
-  ├─> servo_ctrl (servo_ctrl.h/c)
-  │     └─> pico_servo (pico_servo.h/c)
-  └─> uros_app (uros_app.h/c)
-        ├─> board
-        ├─> servo_ctrl
-        └─> pico_wifi_transport (pico_wifi_transport.h/c)
+    ├─> board (board.h/c)
+    ├─> drivers (servo/pico_servo/buzzer/touch)
+    └─> uros_main (uros_main.h/c)
+                ├─> board
+                ├─> servo_ctrl
+                └─> pico_wifi_transport (pico_wifi_transport.h/c)
 ```
 
 ## 다음 단계
@@ -148,6 +155,6 @@ main.c
 
 ## 기존 코드와의 호환성
 
-- 기능적으로 기존 `pico_micro_ros_example.c`와 동일하게 동작
-- WiFi 연결, micro-ROS agent 연결, 서보 제어 모두 동일
-- 빌드 결과물 이름 동일 (`pico_micro_ros_example.uf2`)
+- FreeRTOS 태스크 구조로 확장
+- WiFi 연결, micro-ROS agent 연결, 서보/버저/터치 제어 포함
+- 빌드 결과물 이름 `bindbot.uf2`

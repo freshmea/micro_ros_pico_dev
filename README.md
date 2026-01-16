@@ -16,28 +16,36 @@
 ## build 환경 설정
 
 - wsl2 에서 아래 명령어로 툴체인 설치
+- pico sdk 와 pico-examples 를 wsl2 에서 접근할 수 있는 위치에 복사
+- pico sdk 와 pico-examples 의 경로를 .bashrc 에 추가
+- .pico-sdk 환경변수 설정
+- picotool 설치 ( pico 보드에 펌웨어 업로드용 )
 
 ```bash
 sudo apt update
 sudo apt install gcc-arm-none-eabi
+cd ~/pico
+git clone --recurse-submodules https://github.com/raspberrypi/pico-sdk.git
+git clone https://github.com/raspberrypi/picotool.git
+cd picotool
+mkdir build
+cd build
+cmake --install .
+make -j4
 ```
 
-- pico sdk 와 pico-examples 를 wsl2 에서 접근할 수 있는 위치에 복사
-- pico sdk 와 pico-examples 의 경로를 .bashrc 에 추가
-- .pico-sdk 환경변수 설정
-
 ```bash
-mkdir -p ~/pico-sdk
-cd ~/pico-sdk/lib
+cd ~/pico/pico-sdk/lib
 git clone --recurse-submodules https://github.com/FreeRTOS/FreeRTOS-Kernel.git
 
 export PICO_SDK_PATH=/mnt/c/Users/username/path/to/pico-sdk
 ```
 
-- .pico-examples 환경변수 설정
+### pico-examples 설치 - optional
 
 ```bash
-export PICO_EXAMPLES_PATH=/mnt/c/Users/username/path/to/pico-examples
+git clone --recurse-submodules https://github.com/raspberrypi/pico-examples.git
+export PICO_EXAMPLES_PATH=~/pico/pico-examples
 ```
 
 - build 폴더 생성 및 cmake 설정
@@ -46,11 +54,11 @@ export PICO_EXAMPLES_PATH=/mnt/c/Users/username/path/to/pico-examples
 cd $PICO_EXAMPLES_PATH
 mkdir build
 cd build
-cmake -DPICO_BOARD=pico2_w ..
-make
+cmake -DPICO_BOARD=pico2_w -G Ninja ..
+ninja
 ```
 
-### 실행
+## 실행
 
 - windows11 에서 `usbipd attach --wsl --busid 2-2 --auto-attach` 명령어로 pico 보드 연결
 - picotool 로 pico 보드에 펌웨어 업로드
@@ -60,8 +68,9 @@ cd ~/pico/micro_ros_pico_dev/build
 sudo picotool load bindbot.uf2 -f
 ```
 
-- `micro-ros-agent udp4 --port 8888 -v 4` 로 agent 실행
-- pico 보드에 전원 연결 후 `minicom -b 115200 -D /dev/ttyACM0` 로 시리얼 모니터링
+- `micro-ros-agent udp4 --port 8888 -v 4` 로 agent 실행(udp 통신)
+- `micro-ros-agent serial --dev /dev/ttyACM0 -v 4` 로 agent 실행(시리얼 통신)
+- pico 보드에 전원 연결 후 VsCode 의 직렬 모니터 로 로그 확인
 
 ## 2026_01_08
 
@@ -168,3 +177,41 @@ sudo picotool load bindbot.uf2 -f
 - **프레임워크**: micro-ROS (ROS2 Foxy), Pico SDK 1.6.0
 - **빌드 시스템**: CMake + gcc-arm-none-eabi
 - **라이브러리**: libmicroros (정적), libfixmath (고정소수점 연산)
+
+## 2026_01_12
+
+---
+
+- FreeRTOS 적용 빌드 성공
+- RTOS 환경에서 WiFi 연결 이슈 확인
+- RTOS 테스트 코드 작성
+
+## 2026_01_13
+
+---
+
+- RTOS/micro-ROS 각각 연결 성공
+- 서보 모터 드라이버 개선
+- RTOS 로직 보완 필요 사항 확인
+
+## 2026_01_14
+
+---
+
+- WiFi 업데이트 및 구독 문제 해결
+- agent 실행 후 구독 안됨 문제 해결
+  - 원인은 아직도 불명확
+  - 단순하게 코드를 재구성해서 모듈을 하나씩 추가 하면서 문제 해결
+- main 기반으로 모듈을 하나씩 통합하며 안정성 검증
+
+## 2026_01_15
+
+---
+
+- `main.c` 정상 동작 확인
+- 터치 센서 통합 및 core0/1 초기화 안정화
+- 서보 2개 제어 성공 (`SERVO_PIN`, `SERVO_PIN2`)
+- `uros_main` 분리 및 FreeRTOS 태스크 구조 정리
+- rtos 에서 wifi 와 pwm 제어가 동시에 잘 되지 않는 점 문제 해결
+  - irq 중복 초기화되어 hardware crash 발생 문제 수정
+  - shared 구조에서 exclusive 로 따로 irq 설정 변경(wifi-> shared, pwm-> exclusive)

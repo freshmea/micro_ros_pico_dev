@@ -6,6 +6,7 @@
 micro_ros_pico_dev/
 ├── src/
 │   ├── main.c                    # 메인 애플리케이션 진입점
+│   ├── app_state.h                # 전역 매니저 공유 (buzzer, touch)
 │   ├── board/
 │   │   ├── board.h              # 보드 초기화 및 GPIO 제어 헤더
 │   │   └── board.c              # 보드 초기화 및 GPIO 제어 구현
@@ -20,14 +21,20 @@ micro_ros_pico_dev/
 │   │   ├── pico_servo.c         # 서보 저수준 드라이버 구현
 │   │   ├── passive_buzzer_manager.h  # 패시브 버저 매니저 헤더
 │   │   └── passive_buzzer_manager.c  # 패시브 버저 매니저 구현
+│   │   ├── touch_sensor.h        # 터치 센서 드라이버 헤더
+│   │   └── touch_sensor.c        # 터치 센서 드라이버 구현
 │   ├── transport/
 │   │   ├── pico_wifi_transport.h     # WiFi 전송 계층 헤더
 │   │   ├── pico_wifi_transport.c     # WiFi 전송 계층 구현
 │   │   ├── pico_uart_transports.h    # UART 전송 계층 헤더
 │   │   └── pico_uart_transport.c     # UART 전송 계층 구현
+│   ├── config/
+│   │   └── freertos/             # FreeRTOS 설정
 │   └── uros/
-│       ├── uros_app.h           # micro-ROS 애플리케이션 헤더
-│       └── uros_app.c           # micro-ROS 애플리케이션 구현
+│       ├── uros_main.h          # micro-ROS 런타임 헤더
+│       ├── uros_main.c          # micro-ROS 런타임 구현
+│       ├── uros_app.h           # 참고용 micro-ROS 애플리케이션 헤더
+│       └── uros_app.c           # 참고용 micro-ROS 애플리케이션 구현
 ├── example/
 │   ├── test_servo.py            # 서보 테스트 스크립트
 │   ├── test_buzzer.py           # 버저 테스트 스크립트
@@ -36,7 +43,9 @@ micro_ros_pico_dev/
 ├── doc/
 │   ├── PROJECT_STRUCTURE.md     # 프로젝트 구조 문서
 │   ├── BUZZER_README.md         # 버저 사용 가이드
-│   └── BUZZER_INTEGRATION.md    # 버저 통합 정보
+│   ├── BUZZER_INTEGRATION.md    # 버저 통합 정보
+│   ├── TOUCH_SENSOR_README.md   # 터치 센서 통합 정보
+│   ├── FREERTOS_INTEGRATION.md  # FreeRTOS 통합 정보
 ├── CMakeLists.txt               # 빌드 설정
 └── build/                       # 빌드 출력
 ```
@@ -45,9 +54,9 @@ micro_ros_pico_dev/
 
 ### 1. `src/main.c`
 
-- 프로그램의 메인 진입점
-- 각 모듈의 초기화 및 실행 순서 관리
-- 보드 초기화 → 서보 초기화 → micro-ROS 초기화 → 실행 루프
+- FreeRTOS 태스크 생성 및 실행
+- `ros_task`(core0)에서 `uros_main` 실행
+- `periph_task`(core1)에서 터치/버저/서보 관리
 
 ### 2. `src/board/` - 보드 추상화 계층
 
@@ -70,6 +79,8 @@ micro_ros_pico_dev/
 - 노트 큐 관리 (최대 100개)
 - 14가지 내장 멜로디
 - 버튼 입력 처리 (GP24)
+- **touch_sensor.h / touch_sensor.c**: 터치 센서 드라이버
+- 다중 센서 상태/지속시간 관리
 
 ### 4. `src/transport/` - 통신 전송 계층
 
@@ -90,7 +101,8 @@ micro_ros_pico_dev/
 
 ### 6. `src/uros/` - micro-ROS 애플리케이션
 
-- **uros_app.h / uros_app.c**: micro-ROS 애플리케이션 로직
+- **uros_main.h / uros_main.c**: 실제 런타임에서 사용하는 micro-ROS 로직
+- **uros_app.h / uros_app.c**: 참고용 전체 기능 구현 (부저/터치 전체 토픽 포함)
 - WiFi 전송 계층 설정
 - micro-ROS agent 연결
 - ROS2 노드 및 구독자 생성
@@ -103,20 +115,20 @@ cd /home/aa/pico/micro_ros_pico_dev
 rm -rf build
 mkdir build
 cd build
-cmake ..
-make -j4
+cmake -G Ninja ..
+ninja
 ```
 
 빌드 결과물:
 
-- `pico_micro_ros_example.uf2` - Pico 2W에 업로드할 펌웨어
-- `pico_micro_ros_example.elf` - 디버깅용 ELF 파일
+- `bindbot.uf2` - Pico 2W에 업로드할 펌웨어
+- `bindbot.elf` - 디버깅용 ELF 파일
 
 ## 기능
 
 1. **WiFi 연결**: Pico 2W가 WiFi에 연결
 2. **micro-ROS Agent 연결**: ROS2 네트워크와 통신
-3. **서보 제어**: ROS2 토픽으로 받은 메시지로 서보 각도 제어
+3. **서보 제어**: ROS2 토픽으로 받은 메시지로 서보 2개 제어
 4. **LED 상태 표시**:
    - GP0: WiFi/Agent 연결 상태
    - GP1: 메시지 수신 표시

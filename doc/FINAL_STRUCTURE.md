@@ -10,7 +10,8 @@
 
 ```text
 src/
-├── main.c                              # 메인 진입점
+├── main.c                              # FreeRTOS 태스크 구성
+├── app_state.h                         # 전역 매니저 공유
 ├── board/
 │   ├── board.c                        # 보드 초기화 및 GPIO 제어
 │   └── board.h
@@ -18,18 +19,24 @@ src/
 │   ├── servo_ctrl.c                   # 서보 제어 고수준 인터페이스
 │   ├── servo_ctrl.h
 │   ├── pico_servo.c                   # 서보 저수준 드라이버 (PWM)
-│   └── pico_servo.h
+│   ├── pico_servo.h
+│   ├── passive_buzzer_manager.c       # 패시브 버저 매니저
+│   ├── passive_buzzer_manager.h
+│   ├── touch_sensor.c                 # 터치 센서 드라이버
+│   └── touch_sensor.h
 ├── transport/
 │   ├── pico_wifi_transport.c          # WiFi 전송 계층
 │   ├── pico_wifi_transport.h
 │   ├── pico_uart_transport.c          # UART 전송 계층
 │   └── pico_uart_transports.h
 └── uros/
-    ├── uros_app.c                     # micro-ROS 애플리케이션
+    ├── uros_main.c                    # 런타임 micro-ROS 로직
+    ├── uros_main.h
+    ├── uros_app.c                     # 참고용 전체 기능 구현
     └── uros_app.h
 ```
 
-- **총 13개 파일, 4개 디렉토리**
+- **총 19개 파일, 5개 디렉토리**
 
 ## 📦 각 모듈의 역할
 
@@ -44,6 +51,8 @@ src/
 
 - **servo_ctrl**: 서보 제어 고수준 API (각도 기반)
 - **pico_servo**: 서보 저수준 드라이버 (PWM, 타이밍 제어)
+- **passive_buzzer_manager**: 버저 재생/버튼 처리
+- **touch_sensor**: 터치 센서 상태 관리
 
 ### 3. **transport/** - 통신 전송 계층
 
@@ -52,32 +61,31 @@ src/
 
 ### 4. **uros/** - micro-ROS 애플리케이션
 
-- WiFi 전송 설정
-- micro-ROS agent 연결
-- ROS2 노드 및 구독자 생성
-- 메시지 수신 콜백 처리
+- `uros_main`: 런타임에서 사용하는 노드/토픽 구성
+- `uros_app`: 전체 기능 참조용 구현
 
-### 5. **main.c** - 애플리케이션 진입점
+### 5. **main.c** - FreeRTOS 태스크 구성
 
-- 모든 모듈 초기화
-- 에러 처리
-- 메인 실행 루프
+- `ros_task`/`periph_task` 분리
+- core0/1 어피니티 설정
 
 ## 🔧 CMakeLists.txt 구성
 
 ```cmake
 # 모듈화된 소스 파일
-add_executable(pico_micro_ros_example
+add_executable(bindbot
     src/main.c
     src/board/board.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
-    src/uros/uros_app.c
+    src/drivers/passive_buzzer_manager.c
+    src/drivers/touch_sensor.c
+    src/uros/uros_main.c
     src/transport/pico_wifi_transport.c
 )
 
 # Include 디렉토리
-target_include_directories(pico_micro_ros_example PUBLIC
+target_include_directories(bindbot PUBLIC
     libmicroros/include
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/src
@@ -100,8 +108,8 @@ make -j4
 
 **빌드 결과:**
 
-- ✅ `pico_micro_ros_example.uf2` (788KB)
-- ✅ `test_servo.uf2` (67KB)
+- ✅ `bindbot.uf2`
+- ✅ `bindbot.elf`
 - ✅ 경고 없이 성공적으로 컴파일됨
 
 ## 🔗 의존성 관계
@@ -110,17 +118,19 @@ make -j4
 main.c
   ├─> board/
   │     └─> board.c/h
-  ├─> drivers/
-  │     ├─> servo_ctrl.c/h
-  │     └─> pico_servo.c/h (저수준)
+    ├─> drivers/
+    │     ├─> servo_ctrl.c/h
+    │     ├─> pico_servo.c/h (저수준)
+    │     ├─> passive_buzzer_manager.c/h
+    │     └─> touch_sensor.c/h
   ├─> transport/
   │     ├─> pico_wifi_transport.c/h
   │     └─> pico_uart_transport.c/h
   └─> uros/
-        └─> uros_app.c/h
-              ├─> board (LED 제어)
-              ├─> drivers/servo_ctrl (서보 제어)
-              └─> transport/pico_wifi_transport
+      └─> uros_main.c/h
+          ├─> board (LED 제어)
+          ├─> drivers/servo_ctrl (서보 제어)
+          └─> transport/pico_wifi_transport
 ```
 
 ## ✨ 모듈화의 장점
@@ -148,11 +158,11 @@ main.c
 | 모듈      | 파일 수 | 역할                   |
 | --------- | ------- | ---------------------- |
 | board     | 2       | 하드웨어 추상화        |
-| drivers   | 4       | 하드웨어 드라이버      |
+| drivers   | 8       | 하드웨어 드라이버      |
 | transport | 4       | 통신 전송 계층         |
-| uros      | 2       | micro-ROS 애플리케이션 |
-| main      | 1       | 진입점                 |
-| **합계**  | **13**  | -                      |
+| uros      | 4       | micro-ROS 애플리케이션 |
+| main      | 2       | 진입점/공유 상태       |
+| **합계**  | **19**  | -                      |
 
 ## 🔄 이전 구조와의 비교
 
@@ -169,11 +179,12 @@ pico_uart_transport.c/h
 
 ```text
 src/
-├── main.c                     (27 lines)
+├── main.c                     (FreeRTOS tasks)
+├── app_state.h
 ├── board/                     (2 files)
-├── drivers/                   (4 files)
+├── drivers/                   (8 files)
 ├── transport/                 (4 files)
-└── uros/                      (2 files)
+└── uros/                      (4 files)
 ```
 
 ## ✅ 검증 완료
@@ -181,6 +192,5 @@ src/
 - [x] 모든 소스 파일이 `src/` 폴더 안으로 이동
 - [x] CMakeLists.txt 업데이트 완료
 - [x] 빌드 성공 (경고 없음)
-- [x] `pico_micro_ros_example.uf2` 생성 확인
-- [x] `test_servo.uf2` 생성 확인
+- [x] `bindbot.uf2` 생성 확인
 - [x] 기능적으로 원본과 동일하게 동작

@@ -33,39 +33,28 @@ int main() {
 
 ```c
 int main() {
-    stdio_init_all();
-    xTaskCreate(uros_state_task, ...);  // micro-ROS 관리 태스크
-    vTaskStartScheduler();  // FreeRTOS 스케줄러 시작
+   stdio_init_all();
+   xTaskCreate(ros_task, ...);    // micro-ROS 런타임 태스크
+   xTaskCreate(periph_task, ...); // 터치/버저/서보 태스크
+   vTaskStartScheduler();
 }
 ```
 
 #### 태스크 구조
 
-1. **uros_state_task** (Core 0, Priority 2)
-   - micro-ROS 에이전트 연결 관리
-   - 에이전트 핑 및 재연결 처리
+1. **ros_task** (Core 0, Priority 높음)
+   - `uros_main_init()`로 에이전트 연결 확인
    - micro-ROS executor 실행
-   - 연결 실패 시 watchdog 리셋
 
-2. **main_task** (Core 1, Priority 1)
-   - 보드 및 서보 초기화
-   - 주기적인 애플리케이션 작업 수행
-   - 에이전트 연결 후 동적 생성
+2. **periph_task** (Core 1, Priority 낮음)
+   - 터치 센서 업데이트
+   - 버저 상태/버튼 처리
+   - 서보 초기화 및 주변장치 관리
 
-#### 에이전트 상태 관리
+#### 에이전트 연결 처리
 
-```text
-WAITING_FOR_AGENT → AGENT_AVAILABLE → AGENT_CONNECTED
-                                            ↓
-                    AGENT_DISCONNECTED ←────┘
-                            ↓
-                        RESET
-```
-
-- **WAITING_FOR_AGENT**: 에이전트 핑 대기
-- **AGENT_AVAILABLE**: 에이전트 발견, micro-ROS 초기화 시도
-- **AGENT_CONNECTED**: 연결 성공, executor 실행
-- **AGENT_DISCONNECTED**: 연결 끊김, 리소스 정리 후 리셋
+- `uros_main_init()`에서 ping 루프로 agent 연결 여부 확인
+- 연결 실패 시 태스크 종료 처리 (재시도 로직은 필요 시 추가)
 
 ### 3. uros_app 수정
 
@@ -113,10 +102,10 @@ Pico SDK의 FreeRTOS Kernel을 자동으로 찾아 포함합니다.
 
 ```c
 // Core 0: micro-ROS 관리
-vTaskCoreAffinitySet(task_handle_uros, (1 << 0));
+vTaskCoreAffinitySet(ros_task_handle, (1 << 0));
 
-// Core 1: 애플리케이션 로직
-vTaskCoreAffinitySet(task_handle_main, (1 << 1));
+// Core 1: 주변장치 관리
+vTaskCoreAffinitySet(periph_task_handle, (1 << 1));
 ```
 
 ### 장점
@@ -173,7 +162,7 @@ make
 6. [uros_state_task] main_task 생성 (Core 1)
    ↓
 7. [Core 0] micro-ROS executor 실행
-8. [Core 1] 서보 제어, 센서 처리
+8. [Core 1] 터치/버저/서보 처리
    ↓
 9. 에이전트 연결 끊김 감지
 10. 리소스 정리 및 시스템 리셋

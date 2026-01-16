@@ -55,6 +55,12 @@ Raspberry Pi Pico:
 
 ## 사용 방법
 
+### 현재 런타임(`uros_main`) 구성
+
+- `main.c`의 `periph_task`에서 버저 초기화/업데이트를 수행합니다.
+- `app_state.h`로 전역 매니저를 공유하며, ROS 토픽 기반 제어는 기본적으로 비활성화되어 있습니다.
+- `/buzzer` 토픽을 사용하려면 `uros_app` 로직을 적용하거나 `uros_main`에 구독자를 추가해야 합니다.
+
 ### 1. 빌드
 
 ```bash
