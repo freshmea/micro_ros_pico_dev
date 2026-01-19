@@ -267,5 +267,10 @@ sudo picotool load bindbot.uf2 -f
 - IP5306 기반 파워뱅크 모듈 테스트
   - 전압 5V 로 맞춤 배터리 이슈가 있는건지 배터리 만으로는 전압이 올라오지 않음
   - USB 전원 연결 시에는 전압이 올라오지만 전류가 충분하지 않아 wifi 가 정상 동작하지 않음
+- ssd1306 보드 세팅
+  - 데모 코드 동작 OK
+  - main.c 에 이식 OK
+  - 한글 폰트와 특수 문자가 안 나오는 문제가 있음.
+    - https://github.com/olikraus/u8g2 이것을 활용해서 https://github.com/xyz37/U8G2_Korean_Font 이 사이트 처럼 한글을 나오게 하려고 했으나 실패
 
 ---
