@@ -33,6 +33,7 @@ link_directories(libmicroros)
 # New modular executable
 add_executable(bindbot
     src/main.c
+    src/drivers/ssd1306_driver.c
     src/board/board.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
@@ -51,6 +52,8 @@ target_link_libraries(bindbot
     hardware_irq
     fixmath
     microros
+    hardware_i2c
+    hardware_sync
     FreeRTOS-Kernel
     FreeRTOS-Kernel-Heap4
 )
@@ -109,6 +112,7 @@ add_executable(rtos_micro_ros_test
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
     src/uros/uros_app.c
+    src/drivers/ssd1306_driver.c
     src/transport/pico_wifi_transport.c
     src/transport/pico_wifi_connect.c
 )
@@ -120,6 +124,8 @@ target_link_libraries(rtos_micro_ros_test
     hardware_irq
     fixmath
     microros
+    hardware_i2c
+    hardware_sync
     FreeRTOS-Kernel
     FreeRTOS-Kernel-Heap4
 )
@@ -149,6 +155,7 @@ add_executable(micro_ros_test
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
     src/uros/uros_app.c
+    src/drivers/ssd1306_driver.c
     src/transport/pico_wifi_transport.c
     src/transport/pico_wifi_connect.c
 )
@@ -160,6 +167,8 @@ target_link_libraries(micro_ros_test
     hardware_irq
     fixmath
     microros
+    hardware_i2c
+    hardware_sync
     FreeRTOS-Kernel
     FreeRTOS-Kernel-Heap4
 )

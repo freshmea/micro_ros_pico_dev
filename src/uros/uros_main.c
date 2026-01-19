@@ -14,6 +14,7 @@
 #include "hardware/adc.h"
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
+#include "lwip/netif.h"
 #include "task.h"
 
 #include "app_state.h"
@@ -59,6 +60,9 @@ static void hello_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
         rosidl_runtime_c__String__assign(&hello_msg.data, buffer);
         RCSOFTCHECK(rcl_publish(&hello_publisher, &hello_msg, NULL));
         DEBUG_PRINTF("[hello] published: %s\n", buffer);
+
+        // OLED에 메시지 출력
+        display_set_hello(buffer);
     }
 }
 
@@ -105,8 +109,16 @@ static void servo2_callback(const void *msgin)
 int uros_main_init(void) {
 
     if (pico_wifi_connect() != 0) {
+        display_set_status(WIFI_SSID, false, "0.0.0.0");
         return -1;
     }
+    char ip_buf[16] = "0.0.0.0";
+    cyw43_arch_lwip_begin();
+    if (netif_default) {
+        snprintf(ip_buf, sizeof(ip_buf), "%s", ip4addr_ntoa(netif_ip4_addr(netif_default)));
+    }
+    cyw43_arch_lwip_end();
+    display_set_status(WIFI_SSID, true, ip_buf);
 
     rmw_uros_set_custom_transport(
         false, // must be false for UDP

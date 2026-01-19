@@ -27,7 +27,7 @@
 // ============================================================================
 // micro-ROS 에이전트 설정
 // ============================================================================
-#define AGENT_IP "192.168.219.52"  // micro-ROS agent IP 주소
+#define AGENT_IP "192.168.219.59"  // micro-ROS agent IP 주소
 #define AGENT_PORT 8888            // micro-ROS agent 포트
 #define AGENT_PING_TIMEOUT_MS 1000 // Agent ping 타임아웃 (ms)
 #define AGENT_PING_ATTEMPTS 120    // Agent ping 시도 횟수

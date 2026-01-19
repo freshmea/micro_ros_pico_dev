@@ -68,6 +68,7 @@ cd ~/pico/micro_ros_pico_dev/build
 sudo picotool load bindbot.uf2 -f
 ```
 
+- 공유기 비번 70C05#7P97
 - `micro-ros-agent udp4 --port 8888 -v 4` 로 agent 실행(udp 통신)
 - `micro-ros-agent serial --dev /dev/ttyACM0 -v 4` 로 agent 실행(시리얼 통신)
 - pico 보드에 전원 연결 후 VsCode 의 직렬 모니터 로 로그 확인
@@ -219,7 +220,11 @@ sudo picotool load bindbot.uf2 -f
   - irq 중복 초기화되어 hardware crash 발생 문제 수정
   - shared 구조에서 exclusive 로 따로 irq 설정 변경(wifi-> shared, pwm-> exclusive)
 
+---
+
 ## 2026_01_16
+
+---
 
 - 문서 업데이트
 - 주변 정리 및 부품 정리
@@ -234,5 +239,33 @@ sudo picotool load bindbot.uf2 -f
 - 충전 모듈 및 배터리 추가 예정
 - 자이로, DC 모터 드라이버 추가 예정
 - 케이스 디자인 및 3D 프린팅 예정
+- 디버깅 툴을 사용하기 위해서 시뮬레이터 세팅 예정
+  - [wokwi doc](https://docs.wokwi.com/vscode/getting-started)
+- 하드웨어 디버깅을 위한 JTAG 세팅 예정
+- 교육 컨텐츠로의 연결 예정
+  - IoT 교육용 예제(rasberry pi pico 2w) 소스 코드 정리 및 교안 작성
+  - ROS2 교육용 예제(micro-ros) 소스 코드 정리 및 교안 작성
+  - POSIX 용 라이브러리를 구현해서 read write close open 등 표준 입출력 구현
+  - 실질적인 프로젝트에서의 시제품 제작
+
+---
+
+## 2026_1_19
+
+---
+
+- 전원 보드 연결 및 테스트
+- 삼성 18650 리튬 이온 배터리 3.7V 1200mAh(6개 묶음 분해 후 1개 사용)
+- TP4056 충전 모듈로 리튬 배터리 충전 테스트
+  - TP4056 에 전압을 맞추고 테스트 했을 때 wifi 안 켜짐
+  - 스탭업 컨버터로 3.7V -> 5V 변환 후 테스트 했을 때 wifi 정상 동작
+  - lipo 배터리 없이 USB 전원 -> TP4056 충전 모듈 -> 스탭업 컨버터 -> pico 2w 보드 전원 연결 시 갑자기 20V 이상 전압이 pico 2w 보드에 공급되는 현상 발생(pico 보드 손상, servo 2개 모터 손상)
+  - 배터리가 완충 되지 않으면 서보가 연결 되지 않음
+  - 전원을 병렬 구성해서 servo 와 pico 2w 보드에 각각 전원 공급 필요
+- 배터리 전원으로 pico 2w 보드 구동 테스트
+- 전원 보드와 pico 2w 보드 연결 후 micro-ros 정상 동
+- IP5306 기반 파워뱅크 모듈 테스트
+  - 전압 5V 로 맞춤 배터리 이슈가 있는건지 배터리 만으로는 전압이 올라오지 않음
+  - USB 전원 연결 시에는 전압이 올라오지만 전류가 충분하지 않아 wifi 가 정상 동작하지 않음
 
 ---
