@@ -56,9 +56,16 @@ void ssd1306_init(SSD1306_t *disp) {
         SSD1306_SET_DISP_START_LINE,
         SSD1306_SET_SEG_REMAP | 0x01,
         SSD1306_SET_MUX_RATIO, SSD1306_HEIGHT - 1,
-        SSD1306_SET_COM_OUT_DIR,
+        SSD1306_SET_COM_OUT_DIR | 0x08,
         SSD1306_SET_DISP_OFFSET, 0x00,
-        SSD1306_SET_COM_PIN_CFG, 0x02,
+        SSD1306_SET_COM_PIN_CFG,
+#if ((SSD1306_WIDTH == 128) && (SSD1306_HEIGHT == 32))
+        0x02,
+#elif ((SSD1306_WIDTH == 128) && (SSD1306_HEIGHT == 64))
+        0x12,
+#else
+        0x02,
+#endif
         SSD1306_SET_DISP_CLK_DIV, 0x80,
         SSD1306_SET_PRECHARGE, 0xF1,
         SSD1306_SET_VCOM_DESEL, 0x30,
@@ -66,7 +73,7 @@ void ssd1306_init(SSD1306_t *disp) {
         SSD1306_SET_ENTIRE_ON,
         SSD1306_SET_NORM_DISP,
         SSD1306_SET_CHARGE_PUMP, 0x14,
-        SSD1306_SET_SCROLL, // deactivate scrolling
+        SSD1306_SET_SCROLL | 0x00, // deactivate scrolling
         SSD1306_SET_DISP | 0x01 // display on
     };
     ssd1306_send_cmds(cmds, sizeof(cmds));
