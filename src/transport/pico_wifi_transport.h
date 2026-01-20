@@ -2,7 +2,6 @@
 #define MICRO_ROS_PICO_WIFI
 
 #include <stdint.h>
-#include <stdio.h>
 
 #include <uxr/client/profile/transport/custom/custom_transport.h>
 

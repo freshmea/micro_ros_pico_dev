@@ -1,6 +1,4 @@
-#include "uros_main.h"
-
-#include <stdio.h>
+#include "uros.h"
 
 #include <rcl/error_handling.h>
 #include <std_msgs/msg/bool.h>
@@ -18,9 +16,9 @@
 #include "task.h"
 
 #include "app_state.h"
-#include "board.h"
 #include "project_config.h"
 #include "servo_ctrl.h"
+#include "tasks/periph_task.h"
 
 #include "pico_wifi_connect.h"
 #include "pico_wifi_transport.h"
@@ -59,7 +57,6 @@ static void hello_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 
         rosidl_runtime_c__String__assign(&hello_msg.data, buffer);
         RCSOFTCHECK(rcl_publish(&hello_publisher, &hello_msg, NULL));
-        DEBUG_PRINTF("[hello] published: %s\n", buffer);
 
         // OLED에 메시지 출력
         display_set_hello(buffer);
@@ -106,6 +103,19 @@ static void servo2_callback(const void *msgin)
     servo_ctrl_move_to_angle(SERVO_PIN2, msg->data);
 }
 
+void uros_task(void *params)
+{
+    (void)params;
+
+    if (uros_main_init() != 0) {
+        vTaskDelete(NULL);
+    }
+
+    uros_main_run();
+    uros_main_cleanup();
+    vTaskDelete(NULL);
+}
+
 int uros_main_init(void) {
 
     if (pico_wifi_connect() != 0) {
@@ -139,7 +149,6 @@ int uros_main_init(void) {
     uint8_t blink_led = 1;
 
     for (int loop = 0; loop < attempts; loop++) {
-        printf("uros_ping_agent: loop[%d]\n", loop);
         ret = rmw_uros_ping_agent(timeout_ms, 1);
 
         // Make sure WiFi/lwIP driver progresses even while waiting

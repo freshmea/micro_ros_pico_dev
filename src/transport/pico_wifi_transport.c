@@ -83,7 +83,7 @@ static inline bool packet_queue_enqueue(wifi_transport_params_t *params, const u
         params->packets_dropped_too_large++;
         if (params->packets_dropped_too_large < 5)
         {
-            printf("[ERROR] Packet too large: %u bytes (max: %u)\n", len, MAX_PACKET_SIZE);
+            DEBUG_PRINTF("[ERROR] Packet too large: %u bytes (max: %u)\n", len, MAX_PACKET_SIZE);
         }
         return false;
     }
@@ -93,7 +93,7 @@ static inline bool packet_queue_enqueue(wifi_transport_params_t *params, const u
         params->packets_dropped_full++;
         if (params->packets_dropped_full < 5)
         {
-            printf("[WARN] Packet queue full, dropping packet (%u bytes)\n", len);
+            DEBUG_PRINTF("[WARN] Packet queue full, dropping packet (%u bytes)\n", len);
         }
         return false;
     }
@@ -127,8 +127,7 @@ static inline uint16_t packet_queue_dequeue(wifi_transport_params_t *params, uin
     // If buffer is too small, skip this packet and report error
     if (pkt->len > max_len)
     {
-        printf("[ERROR] Buffer too small for packet: need %u, have %u - DROPPING\n",
-               pkt->len, max_len);
+        DEBUG_PRINTF("[ERROR] Buffer too small for packet: need %u, have %u - DROPPING\n", pkt->len, max_len);
 
         // Drop this packet to avoid corrupting the stream
         pkt->valid = false;
@@ -163,9 +162,8 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, co
             params->packets_dropped_wrong_source++;
             if (params->packets_dropped_wrong_source < 3)
             {
-                printf("[WARN] Packet from unexpected source %s:%u (expected %s:%u)\n",
-                       ipaddr_ntoa(addr), port,
-                       ip4addr_ntoa(&params->agent_addr), params->agent_port);
+                DEBUG_PRINTF("[WARN] Packet from unexpected source %s:%u (expected %s:%u)\n", ipaddr_ntoa(addr), port,
+                             ip4addr_ntoa(&params->agent_addr), params->agent_port);
             }
             pbuf_free(p);
             return;
@@ -199,19 +197,18 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, co
                     // Only log first few packets or errors
                     if (params->packets_received <= 10)
                     {
-                        printf("[DEBUG] UDP RX: %u bytes from %s:%u\n", total_len,
-                               ipaddr_ntoa(addr), port);
+                        DEBUG_PRINTF("[DEBUG] UDP RX: %u bytes from %s:%u\n", total_len, ipaddr_ntoa(addr), port);
                     }
                 }
                 else
                 {
-                    printf("[ERROR] Queue full, dropping packet (%u bytes)\n", total_len);
+                    DEBUG_PRINTF("[ERROR] Queue full, dropping packet (%u bytes)\n", total_len);
                 }
             }
         }
         else if (total_len > MAX_PACKET_SIZE)
         {
-            printf("[ERROR] Packet too large: %u bytes\n", total_len);
+            DEBUG_PRINTF("[ERROR] Packet too large: %u bytes\n", total_len);
         }
 
         pbuf_free(p);
@@ -222,7 +219,7 @@ bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
 {
     // WiFi connection is assumed to be already initialized
     // (either by pico_wifi_connect() in FreeRTOS or bare metal main)
-    printf("[INFO] Setting up UDP transport...\n");
+    DEBUG_PRINTF("[INFO] Setting up UDP transport...\n");
 
     // Initialize packet queue
     wifi_params.queue_write_idx = 0;
@@ -250,7 +247,7 @@ bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
         wifi_params.recv_mutex = xSemaphoreCreateMutex();
         if (wifi_params.recv_mutex == NULL)
         {
-            printf("[ERROR] Failed to create receive mutex\n");
+            DEBUG_PRINTF("[ERROR] Failed to create receive mutex\n");
             return false;
         }
     }
@@ -263,14 +260,14 @@ bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
     if (!wifi_params.pcb)
     {
         cyw43_arch_lwip_end();
-        printf("[ERROR] Failed to create UDP PCB\n");
+        DEBUG_PRINTF("[ERROR] Failed to create UDP PCB\n");
         return false;
     }
 
     // Agent IP 주소 설정
     if (!ip4addr_aton(AGENT_IP, &wifi_params.agent_addr))
     {
-        printf("[ERROR] Invalid agent IP address: %s\n", AGENT_IP);
+        DEBUG_PRINTF("[ERROR] Invalid agent IP address: %s\n", AGENT_IP);
         udp_remove(wifi_params.pcb);
         wifi_params.pcb = NULL;
         cyw43_arch_lwip_end();
@@ -278,13 +275,13 @@ bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
     }
     wifi_params.agent_port = AGENT_PORT;
 
-    printf("[INFO] Agent IP: %s, Port: %d\n", AGENT_IP, AGENT_PORT);
+    DEBUG_PRINTF("[INFO] Agent IP: %s, Port: %d\n", AGENT_IP, AGENT_PORT);
 
     // UDP 바인딩 (모든 인터페이스, 랜덤 포트)
     err_t err = udp_bind(wifi_params.pcb, IP_ADDR_ANY, 0);
     if (err != ERR_OK)
     {
-        printf("[ERROR] Failed to bind UDP: %d\n", err);
+        DEBUG_PRINTF("[ERROR] Failed to bind UDP: %d\n", err);
         udp_remove(wifi_params.pcb);
         wifi_params.pcb = NULL;
         cyw43_arch_lwip_end();
@@ -298,7 +295,7 @@ bool pico_wifi_transport_open(struct uxrCustomTransport *transport)
 
     transport->args = &wifi_params;
 
-    printf("[INFO] UDP transport ready (local port: %d)\n", wifi_params.pcb->local_port);
+    DEBUG_PRINTF("[INFO] UDP transport ready (local port: %d)\n", wifi_params.pcb->local_port);
 
     return true;
 }
@@ -333,7 +330,7 @@ size_t pico_wifi_transport_write(struct uxrCustomTransport *transport, const uin
 
     if (!params || !params->pcb)
     {
-        printf("[ERROR] Write: Invalid params or PCB\n");
+        DEBUG_PRINTF("[ERROR] Write: Invalid params or PCB\n");
         *errcode = 1;
         return 0;
     }
@@ -347,7 +344,7 @@ size_t pico_wifi_transport_write(struct uxrCustomTransport *transport, const uin
     if (!p)
     {
         cyw43_arch_lwip_end();
-        printf("[ERROR] Write: Failed to allocate pbuf\n");
+        DEBUG_PRINTF("[ERROR] Write: Failed to allocate pbuf\n");
         *errcode = 1;
         return 0;
     }
@@ -375,7 +372,7 @@ size_t pico_wifi_transport_write(struct uxrCustomTransport *transport, const uin
 
     if (err != ERR_OK)
     {
-        printf("[ERROR] UDP TX failed: %d\n", err);
+        DEBUG_PRINTF("[ERROR] UDP TX failed: %d\n", err);
         *errcode = 1;
         return 0;
     }
@@ -384,17 +381,16 @@ size_t pico_wifi_transport_write(struct uxrCustomTransport *transport, const uin
     // Only log first few packets
     if (params->packets_sent <= 10)
     {
-        printf("[DEBUG] UDP TX: %zu bytes to %s:%u\n", len,
-               ip4addr_ntoa(&params->agent_addr), params->agent_port);
+        DEBUG_PRINTF("[DEBUG] UDP TX: %zu bytes to %s:%u\n", len, ip4addr_ntoa(&params->agent_addr),
+                     params->agent_port);
     }
 
     // Print statistics every 100 packets
     if (params->packets_sent % 100 == 0)
     {
-        printf("[STATS] TX:%lu RX:%lu Dropped(full:%lu large:%lu wrong:%lu)\n",
-               params->packets_sent, params->packets_received,
-               params->packets_dropped_full, params->packets_dropped_too_large,
-               params->packets_dropped_wrong_source);
+        DEBUG_PRINTF("[STATS] TX:%lu RX:%lu Dropped(full:%lu large:%lu wrong:%lu)\n", params->packets_sent,
+                     params->packets_received, params->packets_dropped_full, params->packets_dropped_too_large,
+                     params->packets_dropped_wrong_source);
     }
 
     *errcode = 0;

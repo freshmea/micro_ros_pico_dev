@@ -8,11 +8,13 @@
 #include "task.h"
 
 #include "project_config.h"
-#include "board/board.h"
+#include "app_state.h"
 #include "drivers/servo_ctrl.h"
+#include "drivers/ssd1306_driver.h"
 #include "drivers/passive_buzzer_manager.h"
 #include "drivers/touch_sensor.h"
-#include "uros/uros_app.h"
+#include "tasks/periph_task.h"
+#include "tasks/uros.h"
 #include "transport/pico_wifi_connect.h"
 #include "transport/pico_wifi_transport.h"
 #include "pico/cyw43_arch.h"
@@ -22,6 +24,20 @@
 #define PERIPH_TASK_STACK_SIZE  2048
 #define ROS_TASK_PRIORITY       (configMAX_PRIORITIES - 2)
 #define PERIPH_TASK_PRIORITY    2
+
+PassiveBuzzerManager buzzer;
+TouchSensorManager touch;
+SSD1306_t ssd1306;
+
+void display_set_status(const char *ssid, bool connected, const char *ip)
+{
+    printf("[display] %s %s %s\n", connected ? "OK" : "NO", ssid ? ssid : "", ip ? ip : "");
+}
+
+void display_set_hello(const char *text)
+{
+    printf("[display] %s\n", text ? text : "");
+}
 
 typedef enum {
     WAITING_FOR_AGENT,
@@ -60,8 +76,6 @@ static void reset_system(void) {
 static bool ping_agent(void) {
     return rmw_uros_ping_agent(AGENT_PING_TIMEOUT_MS, 1) == RMW_RET_OK;
 }
-
-static void periph_task(void *params);
 
 static void ros_task(void *params) {
     (void)params;
@@ -103,7 +117,7 @@ static void ros_task(void *params) {
 
             case AGENT_AVAILABLE:
                 printf("[INFO] Agent available, initializing micro-ROS\n");
-                if (uros_app_init() == 0) {
+                if (uros_main_init() == 0) {
                     state = AGENT_CONNECTED;
                     printf("[INFO] micro-ROS init done\n");
 
@@ -128,7 +142,7 @@ static void ros_task(void *params) {
                 break;
 
             case AGENT_CONNECTED:
-                uros_app_spin_once();
+                uros_main_spin_once();
                 if (!ping_agent()) {
                     printf("[WARN] Agent lost\n");
                     state = AGENT_DISCONNECTED;
@@ -144,7 +158,7 @@ static void ros_task(void *params) {
                 }
 
                 // Stop executor and free entities
-                uros_app_cleanup();
+                uros_main_cleanup();
 
                 // Let watchdog perform a clean reset to re-establish WiFi/agent
                 reset_system();
@@ -155,45 +169,8 @@ static void ros_task(void *params) {
     }
 }
 
-static void periph_task(void *params) {
-    (void)params;
-
-    printf("[INFO] Periph task starting on core %d\n", get_core_num());
-
-    PassiveBuzzerManager buzzer;
-    TouchSensorManager touch;
-
-    buzzer_init(&buzzer);
-    touch_sensor_init(&touch);
-
-    if (servo_ctrl_init(SERVO_PIN) != 0) {
-        board_blink_error();
-    }
-
-    TickType_t last_led_toggle = xTaskGetTickCount();
-    bool led_state = false;
-
-    while (true) {
-        uint64_t now_ms = to_ms_since_boot(get_absolute_time());
-
-        touch_sensor_update(&touch, now_ms);
-
-        for (int i = 0; i < TOUCH_SENSOR_COUNT; i++) {
-            if (touch_sensor_is_pressed(&touch, i)) {
-                printf("[core %d] Touch %d pressed\n", get_core_num(), i + 1);
-                buzzer_play_beep(&buzzer, 1200, 100);
-            }
-        }
-
-        buzzer_update(&buzzer, now_ms);
-        buzzer_check_button(&buzzer);
-
-        vTaskDelay(pdMS_TO_TICKS(20));
-    }
-}
-
 int main(void) {
-    board_init();
+    periph_task_init();
 
     printf("\n");
     printf("========================================\n");

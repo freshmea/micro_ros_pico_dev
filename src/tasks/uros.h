@@ -1,5 +1,5 @@
-#ifndef UROS_MAIN_H
-#define UROS_MAIN_H
+#ifndef UROS_H
+#define UROS_H
 
 #include <rcl/rcl.h>
 #include <rclc/executor.h>
@@ -31,4 +31,6 @@ void uros_main_spin_once(void);
  */
 void uros_main_cleanup(void);
 
-#endif // UROS_MAIN_H
+void uros_task(void *params);
+
+#endif // UROS_H

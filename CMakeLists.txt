@@ -43,12 +43,13 @@ link_directories(libmicroros)
 add_executable(bindbot
     src/main.c
     src/drivers/ssd1306_driver.c
-    src/board/board.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
-    src/uros/uros_main.c
+    src/tasks/display_task.c
+    src/tasks/periph_task.c
+    src/tasks/uros.c
     src/transport/pico_wifi_transport.c
     src/transport/pico_wifi_connect.c
 )
@@ -72,10 +73,9 @@ target_include_directories(bindbot PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/example/firm
     ${CMAKE_CURRENT_LIST_DIR}/src
-    ${CMAKE_CURRENT_LIST_DIR}/src/board
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
     ${CMAKE_CURRENT_LIST_DIR}/src/transport
-    ${CMAKE_CURRENT_LIST_DIR}/src/uros
+    ${CMAKE_CURRENT_LIST_DIR}/src/tasks
     ${CMAKE_CURRENT_LIST_DIR}/src/config
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
     external/libfixmath/libfixmath
@@ -116,12 +116,12 @@ pico_add_extra_outputs(rtos_test)
 # RTOS micro-ROS test app (ROS on core0, peripherals on core1)
 add_executable(rtos_micro_ros_test
     src/rtos_micro_ros_test.c
-    src/board/board.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
-    src/uros/uros_app.c
+    src/tasks/periph_task.c
+    src/tasks/uros.c
     src/drivers/ssd1306_driver.c
     src/transport/pico_wifi_transport.c
     src/transport/pico_wifi_connect.c
@@ -129,6 +129,7 @@ add_executable(rtos_micro_ros_test
 target_link_libraries(rtos_micro_ros_test
     pico_stdlib
     pico_cyw43_arch_lwip_poll
+    hardware_adc
     hardware_pwm
     hardware_clocks
     hardware_irq
@@ -144,10 +145,9 @@ target_include_directories(rtos_micro_ros_test PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/example/firm
     ${CMAKE_CURRENT_LIST_DIR}/src
-    ${CMAKE_CURRENT_LIST_DIR}/src/board
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
     ${CMAKE_CURRENT_LIST_DIR}/src/transport
-    ${CMAKE_CURRENT_LIST_DIR}/src/uros
+    ${CMAKE_CURRENT_LIST_DIR}/src/tasks
     ${CMAKE_CURRENT_LIST_DIR}/src/config
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
     external/libfixmath/libfixmath
@@ -160,12 +160,12 @@ pico_add_extra_outputs(rtos_micro_ros_test)
 # micro-ROS test app
 add_executable(micro_ros_test
     src/micro_ros_test.c
-    src/board/board.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
-    src/uros/uros_app.c
+    src/tasks/periph_task.c
+    src/tasks/uros.c
     src/drivers/ssd1306_driver.c
     src/transport/pico_wifi_transport.c
     src/transport/pico_wifi_connect.c
@@ -173,6 +173,7 @@ add_executable(micro_ros_test
 target_link_libraries(micro_ros_test
     pico_stdlib
     pico_cyw43_arch_lwip_poll
+    hardware_adc
     hardware_pwm
     hardware_clocks
     hardware_irq
@@ -188,10 +189,9 @@ target_include_directories(micro_ros_test PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/example/firm
     ${CMAKE_CURRENT_LIST_DIR}/src
-    ${CMAKE_CURRENT_LIST_DIR}/src/board
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
     ${CMAKE_CURRENT_LIST_DIR}/src/transport
-    ${CMAKE_CURRENT_LIST_DIR}/src/uros
+    ${CMAKE_CURRENT_LIST_DIR}/src/tasks
     ${CMAKE_CURRENT_LIST_DIR}/src/config
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
     external/libfixmath/libfixmath
