@@ -70,6 +70,7 @@ target_link_libraries(bindbot
 target_include_directories(bindbot PUBLIC
     libmicroros/include
     ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/example/firm
     ${CMAKE_CURRENT_LIST_DIR}/src
     ${CMAKE_CURRENT_LIST_DIR}/src/board
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
@@ -141,6 +142,7 @@ target_link_libraries(rtos_micro_ros_test
 target_include_directories(rtos_micro_ros_test PUBLIC
     libmicroros/include
     ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/example/firm
     ${CMAKE_CURRENT_LIST_DIR}/src
     ${CMAKE_CURRENT_LIST_DIR}/src/board
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
@@ -184,6 +186,7 @@ target_link_libraries(micro_ros_test
 target_include_directories(micro_ros_test PUBLIC
     libmicroros/include
     ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/example/firm
     ${CMAKE_CURRENT_LIST_DIR}/src
     ${CMAKE_CURRENT_LIST_DIR}/src/board
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
@@ -198,39 +201,8 @@ pico_enable_stdio_usb(micro_ros_test 1)
 pico_enable_stdio_uart(micro_ros_test 1)
 pico_add_extra_outputs(micro_ros_test)
 
-# pico_micro_ros_example2 (UART transport example)
-add_executable(pico_micro_ros_example2
-    example/pico_micro_ros_example2.c
-    src/transport/pico_uart_transport.c
-)
-target_link_libraries(pico_micro_ros_example2
-    pico_stdlib
-    hardware_pwm
-    microros
-)
-target_include_directories(pico_micro_ros_example2 PUBLIC
-    libmicroros/include
-    ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/src/transport
-)
-target_compile_definitions(pico_micro_ros_example2 PUBLIC UROS_TRANSPORT=serial)
-pico_enable_stdio_usb(pico_micro_ros_example2 1)
-pico_enable_stdio_uart(pico_micro_ros_example2 1)
-pico_add_extra_outputs(pico_micro_ros_example2)
-
-# u8g2pico Korean test example
-add_executable(u8g2pico_korean_test
-    example/u8g2pico_korean.c
-)
-target_link_libraries(u8g2pico_korean_test
-    pico_stdlib
-    hardware_i2c
-    u8g2_external
-)
-target_include_directories(u8g2pico_korean_test PUBLIC
-    ${CMAKE_CURRENT_LIST_DIR}/example
-    external/u8g2/csrc
-)
-pico_enable_stdio_usb(u8g2pico_korean_test 1)
-pico_enable_stdio_uart(u8g2pico_korean_test 1)
-pico_add_extra_outputs(u8g2pico_korean_test)
+# Examples
+add_subdirectory(example/firm)
+add_subdirectory(example/ros_example)
+add_subdirectory(example/u8g2)
+add_subdirectory(example/ws2812_pio)
