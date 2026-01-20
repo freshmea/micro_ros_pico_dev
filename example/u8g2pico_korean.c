@@ -12,6 +12,7 @@
 
 #define SSD1306_WIDTH 128
 #define SSD1306_HEIGHT 32
+#define SSD_DELAY 100
 
 #define DISPLAY_DRIVER_SSD1306_UNIVISION 0
 #define DISPLAY_DRIVER_SSD1306_WINSTAR 1
@@ -193,6 +194,6 @@ int main(void)
         {
             x = SSD1306_WIDTH;
         }
-        sleep_ms(50);
+        sleep_ms(SSD_DELAY);
     }
 }
