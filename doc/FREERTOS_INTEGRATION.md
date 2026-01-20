@@ -22,10 +22,10 @@ micro_ros_pico_dev 프로젝트에 FreeRTOS를 성공적으로 통합했습니�
 
 ```c
 int main() {
-    board_init();
+    periph_task_init();
     servo_ctrl_init();
-    uros_app_init();
-    uros_app_run();  // 무한 루프
+    uros_main_init();
+    uros_main_run();  // 무한 루프
 }
 ```
 
@@ -33,16 +33,18 @@ int main() {
 
 ```c
 int main() {
-   stdio_init_all();
-   xTaskCreate(ros_task, ...);    // micro-ROS 런타임 태스크
-   xTaskCreate(periph_task, ...); // 터치/버저/서보 태스크
+   periph_task_init();
+   display_task_init();
+   xTaskCreate(uros_task, ...);    // micro-ROS 런타임 태스크
+   xTaskCreate(periph_task, ...);  // 터치/버저/서보 태스크
+   xTaskCreate(display_task, ...); // 디스플레이 태스크
    vTaskStartScheduler();
 }
 ```
 
 #### 태스크 구조
 
-1. **ros_task** (Core 0, Priority 높음)
+1. **uros_task** (Core 0, Priority 높음)
    - `uros_main_init()`로 에이전트 연결 확인
    - micro-ROS executor 실행
 
@@ -56,18 +58,18 @@ int main() {
 - `uros_main_init()`에서 ping 루프로 agent 연결 여부 확인
 - 연결 실패 시 태스크 종료 처리 (재시도 로직은 필요 시 추가)
 
-### 3. uros_app 수정
+### 3. uros_main 수정
 
-**추가된 함수**: `uros_app_spin_once()`
+**추가된 함수**: `uros_main_spin_once()`
 
 ```c
-void uros_app_spin_once(void) {
+void uros_main_spin_once(void) {
     RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(EXECUTOR_SPIN_TIMEOUT_MS)));
 }
 ```
 
 - FreeRTOS 태스크에서 호출 가능한 논블로킹 함수
-- 기존 `uros_app_run()`은 무한 루프 유지 (호환성)
+- 기존 `uros_main_run()`은 무한 루프 유지 (호환성)
 
 ### 4. CMakeLists.txt 업데이트
 
@@ -102,7 +104,7 @@ Pico SDK의 FreeRTOS Kernel을 자동으로 찾아 포함합니다.
 
 ```c
 // Core 0: micro-ROS 관리
-vTaskCoreAffinitySet(ros_task_handle, (1 << 0));
+vTaskCoreAffinitySet(uros_task_handle, (1 << 0));
 
 // Core 1: 주변장치 관리
 vTaskCoreAffinitySet(periph_task_handle, (1 << 1));
@@ -137,7 +139,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
 ```c
 // 정리 작업이 1초 이상 걸리면 리셋
 watchdog_enable(1000, true);
-uros_app_cleanup();
+uros_main_cleanup();
 ```
 
 micro-ROS 전송이 끊긴 상태에서 `_fini()` 호출 시 행이 발생할 수 있으므로 watchdog으로 보호합니다.

@@ -7,9 +7,6 @@ micro_ros_pico_dev/
 ├── src/
 │   ├── main.c                    # 메인 애플리케이션 진입점
 │   ├── app_state.h                # 전역 매니저 공유 (buzzer, touch)
-│   ├── board/
-│   │   ├── board.h              # 보드 초기화 및 GPIO 제어 헤더
-│   │   └── board.c              # 보드 초기화 및 GPIO 제어 구현
 │   ├── config/
 │   │   ├── project_config.h     # 프로젝트 설정 (핀, WiFi, ROS2 등)
 │   │   ├── rcl_check_macros.h   # RCL 에러 체크 매크로
@@ -30,11 +27,13 @@ micro_ros_pico_dev/
 │   │   └── pico_uart_transport.c     # UART 전송 계층 구현
 │   ├── config/
 │   │   └── freertos/             # FreeRTOS 설정
-│   └── uros/
-│       ├── uros_main.h          # micro-ROS 런타임 헤더
-│       ├── uros_main.c          # micro-ROS 런타임 구현
-│       ├── uros_app.h           # 참고용 micro-ROS 애플리케이션 헤더
-│       └── uros_app.c           # 참고용 micro-ROS 애플리케이션 구현
+│   └── tasks/
+│       ├── uros.h               # micro-ROS 런타임 헤더
+│       ├── uros.c               # micro-ROS 런타임 구현
+│       ├── periph_task.h        # 주변장치 태스크 헤더
+│       ├── periph_task.c        # 주변장치 태스크 구현
+│       ├── display_task.h       # 디스플레이 태스크 헤더
+│       └── display_task.c       # 디스플레이 태스크 구현
 ├── example/
 │   ├── test_servo.py            # 서보 테스트 스크립트
 │   ├── test_buzzer.py           # 버저 테스트 스크립트
@@ -55,15 +54,17 @@ micro_ros_pico_dev/
 ### 1. `src/main.c`
 
 - FreeRTOS 태스크 생성 및 실행
-- `ros_task`(core0)에서 `uros_main` 실행
+- `uros_task`(core0)에서 micro-ROS 런타임 실행
 - `periph_task`(core1)에서 터치/버저/서보 관리
+- `display_task`에서 OLED 상태 표시
 
-### 2. `src/board/` - 보드 추상화 계층
+### 2. `src/tasks/` - 태스크/보드 초기화
 
-- **board.h / board.c**: Pico 2W 보드 초기화 및 GPIO 제어
-- GPIO 핀 정의 및 관리
-- LED 상태 제어 (WiFi 상태, 메시지 상태, PWM LED, 온보드 LED)
-- USB 시리얼 초기화
+- **periph_task.h / periph_task.c**: 보드 초기화 및 주변장치 태스크
+  - GPIO 핀 초기화/LED 제어
+  - USB 시리얼 초기화 및 버튼 풀업
+- **display_task.h / display_task.c**: OLED 큐/렌더링과 `display_set_*` 제공
+- **uros.h / uros.c**: micro-ROS 런타임 태스크/실행 로직
 
 ### 3. `src/drivers/` - 하드웨어 드라이버
 
@@ -99,10 +100,9 @@ micro_ros_pico_dev/
 - **rcl_check_macros.h**: RCL 에러 체크 매크로
 - **lwipopts.h**: lwIP 네트워크 스택 설정
 
-### 6. `src/uros/` - micro-ROS 애플리케이션
+### 6. `src/tasks/` - micro-ROS 애플리케이션/태스크
 
-- **uros_main.h / uros_main.c**: 실제 런타임에서 사용하는 micro-ROS 로직
-- **uros_app.h / uros_app.c**: 참고용 전체 기능 구현 (부저/터치 전체 토픽 포함)
+- **uros.h / uros.c**: 실제 런타임에서 사용하는 micro-ROS 로직
 - WiFi 전송 계층 설정
 - micro-ROS agent 연결
 - ROS2 노드 및 구독자 생성
@@ -154,5 +154,4 @@ ninja
 ## 향후 확장 가능성
 
 - `src/drivers/`에 새로운 하드웨어 드라이버 추가 (모터, 센서 등)
-- `src/uros/`에 퍼블리셔, 서비스 등 추가
-- `src/board/`에 다른 보드 지원 추가 (조건부 컴파일)
+- `src/tasks/`에 퍼블리셔, 서비스 등 추가

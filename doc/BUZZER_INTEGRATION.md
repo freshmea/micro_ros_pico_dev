@@ -6,7 +6,8 @@
 
 - **`src/drivers/passive_buzzer_manager.h`**: 버저 매니저 헤더 파일
 - **`src/drivers/passive_buzzer_manager.c`**: 버저 매니저 구현 파일
-- **`src/uros/uros_app.c`**: micro-ROS 애플리케이션 (업데이트됨)
+- **`src/tasks/periph_task.c`**: 주변장치 태스크에서 버저 처리
+- **`src/tasks/uros.c`**: micro-ROS 런타임 (필요 시 /buzzer 구독 확장)
 
 ### 2. 예제 및 문서
 
@@ -15,33 +16,11 @@
 
 ## 주요 변경사항
 
-### uros_app.c 변경사항
+### 현재 런타임 구성
 
-1. **새로운 include 추가**:
-
-   ```c
-   #include "passive_buzzer_manager.h"
-   #include <std_msgs/msg/int32_multi_array.h>
-   ```
-
-2. **새로운 전역 변수**:
-
-   ```c
-   static rcl_subscription_t buzzer_subscriber;
-   static rcl_timer_t buzzer_timer;
-   static std_msgs__msg__Int32MultiArray buzzer_msg;
-   static PassiveBuzzerManager buzzer_manager;
-   ```
-
-3. **새로운 콜백 함수**:
-   - `buzzer_subscription_callback()`: /buzzer 토픽 구독
-   - `buzzer_timer_callback()`: 10ms 주기로 버저 상태 업데이트
-
-4. **초기화 수정**:
-   - 버저 매니저 초기화
-   - 버저 구독자 추가
-   - 버저 타이머 추가
-   - 실행기(executor)를 3개 핸들로 확장
+- `periph_task`에서 버저 초기화/업데이트를 수행합니다.
+- `/buzzer` ROS 토픽 구독은 기본 구성에 포함되어 있지 않습니다.
+- 필요 시 `src/tasks/uros.c`에 구독자를 추가해 확장합니다.
 
 ## 하드웨어 구성
 
@@ -59,7 +38,7 @@ Raspberry Pi Pico:
 
 - `main.c`의 `periph_task`에서 버저 초기화/업데이트를 수행합니다.
 - `app_state.h`로 전역 매니저를 공유하며, ROS 토픽 기반 제어는 기본적으로 비활성화되어 있습니다.
-- `/buzzer` 토픽을 사용하려면 `uros_app` 로직을 적용하거나 `uros_main`에 구독자를 추가해야 합니다.
+- `/buzzer` 토픽을 사용하려면 `src/tasks/uros.c`에 구독자를 추가해야 합니다.
 
 ### 1. 빌드
 

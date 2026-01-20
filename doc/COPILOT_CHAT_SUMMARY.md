@@ -6,8 +6,8 @@
 
 ### 1.1 micro-ROS 런타임 분리 및 구조화
 
-- `main.c`에서 uROS 로직을 분리해 `uros_main.c`로 이전하고, `uros_app.c` 구조를 참고하여 통합.
-- FreeRTOS 환경에서 `ros_task`(core0)와 `periph_task`(core1)로 분리.
+- `main.c`에서 uROS 로직을 분리해 `src/tasks/uros.c`로 이전하고, legacy `uros_app` 구조를 참고하여 통합 (현재 파일은 제거됨).
+- FreeRTOS 환경에서 `uros_task`(core0)와 `periph_task`(core1)로 분리.
 - 기존 동작 파라미터를 유지하면서 구조만 변경하는 작업이 반복적으로 요청됨.
 
 ### 1.2 WiFi/agent 연결과 executor 안정화
@@ -22,7 +22,7 @@
 
 ### 1.4 터치 센서/버저 통합
 
-- `uros_app`의 전체 기능을 `uros_main`에 가져오되, 중복 초기화/업데이트를 피하는 방식 선호.
+- legacy `uros_app`의 전체 기능을 `uros_main`에 가져오되, 중복 초기화/업데이트를 피하는 방식 선호.
 - 최신 런타임에서는 `touch_1/state`만 publish하도록 축소 (안정성 목적).
 
 ### 1.5 듀얼 서보 제어
@@ -56,7 +56,7 @@
 
 ### D. 터치 센서 안정성 이슈
 
-- 문제: `uros_app`의 3센서 전체 publish를 `uros_main`에 이식 시 에러 발생.
+- 문제: legacy `uros_app`의 3센서 전체 publish를 `uros_main`에 이식 시 에러 발생.
 - 해결: `touch_1/state`만 publish하도록 축소.
 
 ### E. LCD 예제 빌드 오류 (I2C default 정의)
@@ -68,8 +68,8 @@
 
 ## 3) 주요 해결 방법 요약
 
-- **uROS 분리**: `uros_main` 중심 구조로 리팩토링, `uros_app`은 참조 구현으로 유지.
-- **FreeRTOS 태스크 분리**: `ros_task`/`periph_task`로 역할 분리, core affinity 지정.
+- **uROS 분리**: `uros_main` 중심 구조로 리팩토링, `uros_app`은 제거됨.
+- **FreeRTOS 태스크 분리**: `uros_task`/`periph_task`로 역할 분리, core affinity 지정.
 - **IRQ 가드**: PWM IRQ 등록을 1회로 제한해 중복 충돌 방지.
 - **듀얼 서보 토픽 분리**: `servo_angle`, `servo2_angle` 각각 독립 제어.
 - **터치 publish 축소**: 안정성을 위해 `touch_1/state`만 활성화.
@@ -104,7 +104,7 @@
 
 ## 5) 추천 체크리스트
 
-- [ ] `ros_task`/`periph_task`가 예상 core에 배치됐는지 확인
+- [ ] `uros_task`/`periph_task`가 예상 core에 배치됐는지 확인
 - [ ] `PWM_IRQ_WRAP` 등록이 한 번만 호출되는지 확인
 - [ ] `servo_angle` / `servo2_angle` 토픽 분리 여부 확인
 - [ ] 터치 publish가 `touch_1/state`만 활성화인지 확인

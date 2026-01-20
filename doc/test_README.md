@@ -5,6 +5,7 @@
 ## 📋 테스트 스크립트 목록
 
 ### 1. test_servo.py
+
 서보 모터 제어 테스트 스크립트
 
 - **Topic**: `/servo_angle`
@@ -13,6 +14,7 @@
 - **Range**: 0-180 degrees
 
 ### 2. test_buzzer.py
+
 Passive Buzzer 제어 테스트 스크립트
 
 - **Topic**: `/buzzer`
@@ -25,11 +27,12 @@ Passive Buzzer 제어 테스트 스크립트
 ### 사전 준비
 
 1. **micro-ROS Agent 실행** (별도 터미널)
+
 ```bash
 ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888
 ```
 
-2. **Pico 연결 확인**
+1. **Pico 연결 확인**
 Pico가 WiFi에 연결되고 Agent와 통신 중인지 확인합니다.
 
 ### Servo 테스트 실행
@@ -39,15 +42,17 @@ cd /home/aa/pico/micro_ros_pico_dev/example
 python3 test_servo.py
 ```
 
-#### 주요 기능:
+#### 주요 기능
+
 - ✅ **기본 위치**: 중앙(90°), 최소(0°), 최대(180°)
 - ✅ **테스트 패턴**: 특정 위치 순차 테스트
 - ✅ **스윕 모드**: 전체 범위, 역방향, 부드러운 스윕
 - ✅ **고급 패턴**: 웨이브, 연속 스윕, 댄스 패턴
 - ✅ **사용자 정의 각도**: 원하는 각도로 직접 제어
 
-#### 메뉴 예시:
-```
+#### 메뉴 예시
+
+```text
 ==================================================
    Servo Motor Test Menu
 ==================================================
@@ -79,15 +84,17 @@ cd /home/aa/pico/micro_ros_pico_dev/example
 python3 test_buzzer.py
 ```
 
-#### 주요 기능:
+#### 주요 기능1
+
 - 🔊 **단순 비프음**: 1000Hz, 200ms
 - 🎵 **음계 연주**: C 메이저 스케일
 - 🎂 **멜로디**: Happy Birthday, Twinkle Twinkle Little Star 등
 - 📡 **SOS 신호**: 모스 부호로 SOS 전송
 - 🎹 **사용자 정의**: 원하는 주파수와 지속시간 설정
 
-#### 메뉴 예시:
-```
+#### 메뉴 예시1
+
+```text
 === Buzzer Test Menu ===
 1. Simple beep
 2. C major scale
@@ -248,12 +255,14 @@ pip3 list | grep rclpy
 ### "Topic not found" 에러
 
 1. Pico가 Agent에 연결되었는지 확인
-2. Topic 목록 확인:
+2. Topic 목록 확인
+
 ```bash
 ros2 topic list
 ```
 
-3. Node 목록 확인:
+1. Node 목록 확인
+
 ```bash
 ros2 node list
 ```

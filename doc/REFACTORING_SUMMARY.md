@@ -10,9 +10,6 @@
 src/
 ├── main.c                          # 메인 진입점
 ├── app_state.h                     # 전역 매니저 공유
-├── board/
-│   ├── board.h                     # 보드 초기화 및 GPIO 제어 인터페이스
-│   └── board.c                     # 보드 초기화 및 GPIO 제어 구현
 ├── drivers/
 │   ├── servo_ctrl.h                # 서보 모터 제어 인터페이스
 │   └── servo_ctrl.c                # 서보 모터 제어 구현
@@ -22,21 +19,24 @@ src/
 │   ├── passive_buzzer_manager.c
 │   ├── touch_sensor.h               # 터치 센서 드라이버
 │   └── touch_sensor.c
-└── uros/
-    ├── uros_main.h                 # micro-ROS 런타임 인터페이스
-    ├── uros_main.c                 # micro-ROS 런타임 구현
-    ├── uros_app.h                  # 참고용 전체 기능 인터페이스
-    └── uros_app.c                  # 참고용 전체 기능 구현
+└── tasks/
+    ├── uros.h                      # micro-ROS 런타임 인터페이스
+    ├── uros.c                      # micro-ROS 런타임 구현
+    ├── periph_task.h               # 주변장치 태스크/보드 초기화
+    ├── periph_task.c
+    ├── display_task.h              # 디스플레이 태스크
+    └── display_task.c
 ```
 
 ## 각 모듈의 책임
 
-### 1. **board 모듈** (보드 하드웨어 추상화)
+### 1. **tasks 모듈** (태스크/보드 초기화)
 
 - GPIO 핀 초기화 (WiFi 상태, 메시지 상태, PWM LED)
 - USB 시리얼 초기화 및 연결 대기
 - LED 상태 제어 함수 제공
 - 에러 표시 (깜박임)
+- 주변장치/디스플레이 태스크 제공
 
 **함수:**
 
@@ -60,20 +60,19 @@ src/
 - `servo_ctrl_move_to_angle()` - 각도로 서보 이동 (0-180°)
 - `servo_ctrl_center()` - 중앙 위치(90°)로 이동
 
-### 3. **uros 모듈** (micro-ROS 애플리케이션)
+### 3. **tasks 모듈** (micro-ROS 애플리케이션)
 
-- `uros_main`: 런타임 노드/토픽 구성
-- `uros_app`: 전체 기능 참고용 구현
+- `uros`: 런타임 노드/토픽 구성
 
 **함수:**
 
-- `uros_app_init()` - micro-ROS 초기화 및 agent 연결
-- `uros_app_run()` - 메인 실행 루프
-- `uros_app_cleanup()` - 리소스 정리
+- `uros_main_init()` - micro-ROS 초기화 및 agent 연결
+- `uros_main_run()` - 메인 실행 루프
+- `uros_main_cleanup()` - 리소스 정리
 
 ### 4. **main.c** (FreeRTOS 태스크 구성)
 
-- `ros_task`/`periph_task` 분리
+- `uros_task`/`periph_task` 분리
 - core0/1 어피니티 설정
 
 ## CMakeLists.txt 변경사항
@@ -85,12 +84,13 @@ set(PICO_BOARD pico2_w CACHE STRING "Board type")
 # 모듈화된 소스 파일 추가
 add_executable(bindbot
     src/main.c
-    src/board/board.c
     src/drivers/servo_ctrl.c
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
-    src/uros/uros_main.c
+    src/tasks/uros.c
+    src/tasks/periph_task.c
+    src/tasks/display_task.c
     src/transport/pico_wifi_transport.c
 )
 
@@ -99,9 +99,8 @@ target_include_directories(bindbot PUBLIC
     libmicroros/include
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/src
-    ${CMAKE_CURRENT_LIST_DIR}/src/board
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
-    ${CMAKE_CURRENT_LIST_DIR}/src/uros
+    ${CMAKE_CURRENT_LIST_DIR}/src/tasks
     external/libfixmath/libfixmath
 )
 ```
@@ -135,10 +134,10 @@ make -j4
 
 ```text
 main.c
-    ├─> board (board.h/c)
+    ├─> tasks (periph/display/uros)
     ├─> drivers (servo/pico_servo/buzzer/touch)
-    └─> uros_main (uros_main.h/c)
-                ├─> board
+    └─> uros (uros.h/c)
+                ├─> periph_task (board GPIO/LED)
                 ├─> servo_ctrl
                 └─> pico_wifi_transport (pico_wifi_transport.h/c)
 ```
@@ -148,7 +147,7 @@ main.c
 이제 프로젝트를 다음과 같이 확장할 수 있습니다:
 
 1. **새로운 드라이버 추가**: `src/drivers/`에 모터, 센서 등 추가
-2. **퍼블리셔 추가**: `src/uros/`에 센서 데이터 퍼블리싱 기능 추가
+2. **퍼블리셔 추가**: `src/tasks/`에 센서 데이터 퍼블리싱 기능 추가
 3. **서비스 추가**: ROS2 서비스 클라이언트/서버 구현
 4. **다중 보드 지원**: 조건부 컴파일로 다른 보드 지원
 5. **설정 파일**: JSON/YAML 설정 파일 로드 기능
