@@ -75,7 +75,7 @@ void uros_app_spin_once(void) {
 
 ```cmake
 # FreeRTOS Kernel import
-set(FREERTOS_KERNEL_PATH "$ENV{PICO_SDK_PATH}/lib/FreeRTOS-Kernel" CACHE STRING "FreeRTOS Kernel Path")
+set(FREERTOS_KERNEL_PATH "${CMAKE_CURRENT_LIST_DIR}/external/FreeRTOS-Kernel" CACHE STRING "FreeRTOS Kernel Path")
 include(FreeRTOS_Kernel_import.cmake)
 
 # FreeRTOS config directory

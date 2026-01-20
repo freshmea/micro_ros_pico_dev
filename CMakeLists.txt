@@ -15,17 +15,26 @@ pico_sdk_init()
 set(FREERTOS_CONFIG_DIR "${CMAKE_CURRENT_LIST_DIR}/src/config/freertos" CACHE STRING "FreeRTOS Config Path")
 include_directories("${FREERTOS_CONFIG_DIR}")
 
-# Include FreeRTOS Kernel AFTER pico_sdk_init() (use sdk path from env)
-include(${PICO_SDK_PATH}/lib/FreeRTOS-Kernel/portable/ThirdParty/Community-Supported-Ports/GCC/RP2350_ARM_NTZ/FreeRTOS_Kernel_import.cmake)
+# Include FreeRTOS Kernel AFTER pico_sdk_init()
+set(FREERTOS_KERNEL_PATH "${CMAKE_CURRENT_LIST_DIR}/external/FreeRTOS-Kernel" CACHE STRING "FreeRTOS Kernel Path")
+include(${CMAKE_CURRENT_LIST_DIR}/external/FreeRTOS-Kernel/portable/ThirdParty/Community-Supported-Ports/GCC/RP2350_ARM_NTZ/FreeRTOS_Kernel_import.cmake)
 
 # Add libfixmath
 add_library(fixmath STATIC
-    libfixmath/libfixmath/fix16.c
-    libfixmath/libfixmath/fix16_sqrt.c
-    libfixmath/libfixmath/uint32.c
+    external/libfixmath/libfixmath/fix16.c
+    external/libfixmath/libfixmath/fix16_sqrt.c
+    external/libfixmath/libfixmath/uint32.c
 )
 target_include_directories(fixmath PUBLIC
-    libfixmath/libfixmath
+    external/libfixmath/libfixmath
+)
+
+file(GLOB U8G2_SOURCES
+    "${CMAKE_CURRENT_LIST_DIR}/external/u8g2/csrc/*.c"
+)
+add_library(u8g2_external STATIC ${U8G2_SOURCES})
+target_include_directories(u8g2_external PUBLIC
+    external/u8g2/csrc
 )
 
 link_directories(libmicroros)
@@ -68,7 +77,7 @@ target_include_directories(bindbot PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/uros
     ${CMAKE_CURRENT_LIST_DIR}/src/config
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
-    libfixmath/libfixmath
+    external/libfixmath/libfixmath
 )
 
 SET(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")
@@ -139,7 +148,7 @@ target_include_directories(rtos_micro_ros_test PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/uros
     ${CMAKE_CURRENT_LIST_DIR}/src/config
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
-    libfixmath/libfixmath
+    external/libfixmath/libfixmath
 )
 target_compile_definitions(rtos_micro_ros_test PUBLIC PROJECT_USE_FREERTOS=1)
 pico_enable_stdio_usb(rtos_micro_ros_test 1)
@@ -182,7 +191,7 @@ target_include_directories(micro_ros_test PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/uros
     ${CMAKE_CURRENT_LIST_DIR}/src/config
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
-    libfixmath/libfixmath
+    external/libfixmath/libfixmath
 )
 target_compile_definitions(micro_ros_test PUBLIC PROJECT_USE_FREERTOS=0)
 pico_enable_stdio_usb(micro_ros_test 1)
@@ -208,3 +217,20 @@ target_compile_definitions(pico_micro_ros_example2 PUBLIC UROS_TRANSPORT=serial)
 pico_enable_stdio_usb(pico_micro_ros_example2 1)
 pico_enable_stdio_uart(pico_micro_ros_example2 1)
 pico_add_extra_outputs(pico_micro_ros_example2)
+
+# u8g2pico Korean test example
+add_executable(u8g2pico_korean_test
+    example/u8g2pico_korean.c
+)
+target_link_libraries(u8g2pico_korean_test
+    pico_stdlib
+    hardware_i2c
+    u8g2_external
+)
+target_include_directories(u8g2pico_korean_test PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/example
+    external/u8g2/csrc
+)
+pico_enable_stdio_usb(u8g2pico_korean_test 1)
+pico_enable_stdio_uart(u8g2pico_korean_test 1)
+pico_add_extra_outputs(u8g2pico_korean_test)

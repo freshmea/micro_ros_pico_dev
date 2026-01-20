@@ -93,7 +93,7 @@ target_include_directories(bindbot PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
     ${CMAKE_CURRENT_LIST_DIR}/src/transport
     ${CMAKE_CURRENT_LIST_DIR}/src/uros
-    libfixmath/libfixmath
+    external/libfixmath/libfixmath
 )
 ```
 

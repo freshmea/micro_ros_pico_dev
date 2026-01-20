@@ -35,8 +35,8 @@ make -j4
 ```
 
 ```bash
-cd ~/pico/pico-sdk/lib
-git clone --recurse-submodules https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+cd ~/pico/micro_ros_pico_dev/external
+cp -a ~/pico/pico-sdk/lib/FreeRTOS-Kernel .
 
 export PICO_SDK_PATH=/mnt/c/Users/username/path/to/pico-sdk
 ```
@@ -152,7 +152,7 @@ sudo picotool load bindbot.uf2 -f
 
 - `.vscode/c_cpp_properties.json` 재작성
   - ROS2/TurtleBot3 불필요 경로 제거
-  - Pico SDK, micro-ROS, libfixmath 경로 추가
+  - Pico SDK, micro-ROS, external/libfixmath 경로 추가
   - ARM Cortex-M33 컴파일러 설정 (`gcc-arm`)
   - `forcedInclude`로 매크로 헤더 자동 인식
   - `build/generated/pico_base` 경로 추가로 `version.h` 인식 문제 해결
@@ -177,7 +177,7 @@ sudo picotool load bindbot.uf2 -f
 - **통신**: WiFi (WPA2-PSK) → UDP 8888 → micro-ROS agent
 - **프레임워크**: micro-ROS (ROS2 Foxy), Pico SDK 1.6.0
 - **빌드 시스템**: CMake + gcc-arm-none-eabi
-- **라이브러리**: libmicroros (정적), libfixmath (고정소수점 연산)
+- **라이브러리**: libmicroros (정적), external/libfixmath (고정소수점 연산), external/u8g2
 
 ## 2026_01_12
 
@@ -271,6 +271,21 @@ sudo picotool load bindbot.uf2 -f
   - 데모 코드 동작 OK
   - main.c 에 이식 OK
   - 한글 폰트와 특수 문자가 안 나오는 문제가 있음.
-    - https://github.com/olikraus/u8g2 이것을 활용해서 https://github.com/xyz37/U8G2_Korean_Font 이 사이트 처럼 한글을 나오게 하려고 했으나 실패
+    - [u8g2](https://github.com/olikraus/u8g2) 이것을 활용해서 [U8G2_Korean_Font](https://github.com/xyz37/U8G2_Korean_Font) 이 사이트 처럼 한글을 나오게 하려고 했으나 실패
+
+---
+
+## 2026_01_20
+
+---
+
+- ssd1306 한글 폰트 문제 해결
+  - [u8g2pico](https://github.com/georgines/u8g2pico) 이 레포를 가지고 기본적인 u8g2 테스트
+  - u8g2만 적용해도 무언가 문제가 발생하는 것을 확인
+  - 기본 로직을 점검하고 수정
+  - USB stdio 로그로 단계별 초기화 확인
+  - I2C 스캔 추가로 실제 주소 확인 후 사용
+  - SSD1306/SH1106 드라이버 선택 가능하게 구성
+  - I2C 속도 100kHz로 낮춰 안정화
 
 ---
