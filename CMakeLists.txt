@@ -47,12 +47,14 @@ add_executable(bindbot
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
+    src/drivers/ws2812_driver.c
     src/tasks/display_task.c
     src/tasks/periph_task.c
     src/tasks/uros.c
     src/transport/pico_wifi_transport.c
     src/transport/pico_wifi_connect.c
 )
+pico_generate_pio_header(bindbot ${CMAKE_CURRENT_LIST_DIR}/example/ws2812_pio/ws2812.pio)
 target_link_libraries(bindbot
     pico_stdlib
     pico_cyw43_arch_lwip_poll  # 수동 폴링 모드 (FreeRTOS와 가장 호환성 좋음)
@@ -60,6 +62,7 @@ target_link_libraries(bindbot
     hardware_pwm
     hardware_clocks
     hardware_irq
+    hardware_pio
     fixmath
     u8g2_external
     microros
@@ -121,12 +124,14 @@ add_executable(rtos_micro_ros_test
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
+    src/drivers/ws2812_driver.c
     src/tasks/periph_task.c
     src/tasks/uros.c
     src/drivers/ssd1306_driver.c
     src/transport/pico_wifi_transport.c
     src/transport/pico_wifi_connect.c
 )
+pico_generate_pio_header(rtos_micro_ros_test ${CMAKE_CURRENT_LIST_DIR}/example/ws2812_pio/ws2812.pio)
 target_link_libraries(rtos_micro_ros_test
     pico_stdlib
     pico_cyw43_arch_lwip_poll
@@ -134,6 +139,7 @@ target_link_libraries(rtos_micro_ros_test
     hardware_pwm
     hardware_clocks
     hardware_irq
+    hardware_pio
     fixmath
     microros
     hardware_i2c
@@ -165,12 +171,14 @@ add_executable(micro_ros_test
     src/drivers/pico_servo.c
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
+    src/drivers/ws2812_driver.c
     src/tasks/periph_task.c
     src/tasks/uros.c
     src/drivers/ssd1306_driver.c
     src/transport/pico_wifi_transport.c
     src/transport/pico_wifi_connect.c
 )
+pico_generate_pio_header(micro_ros_test ${CMAKE_CURRENT_LIST_DIR}/example/ws2812_pio/ws2812.pio)
 target_link_libraries(micro_ros_test
     pico_stdlib
     pico_cyw43_arch_lwip_poll
@@ -178,6 +186,7 @@ target_link_libraries(micro_ros_test
     hardware_pwm
     hardware_clocks
     hardware_irq
+    hardware_pio
     fixmath
     microros
     hardware_i2c

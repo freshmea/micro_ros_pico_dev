@@ -45,6 +45,7 @@ void touch_sensor_update(TouchSensorManager *manager, uint64_t currentMillis)
                 // Rising edge - just pressed
                 sensor->startTime = currentMillis;
                 sensor->beepCount = 0;
+                sensor->lastBeepCount = 0;
             }
             sensor->duration = currentMillis - sensor->startTime;
         }
@@ -53,12 +54,10 @@ void touch_sensor_update(TouchSensorManager *manager, uint64_t currentMillis)
             // Button is released
             if (sensor->lastState)
             {
-                // Falling edge - just released
-                sensor->lastBeepCount += sensor->beepCount;
+                sensor->lastBeepCount = sensor->beepCount;
             }
             sensor->duration = 0;
             sensor->startTime = 0;
-            sensor->beepCount = 0;
         }
     }
 }
@@ -97,60 +96,40 @@ uint64_t touch_sensor_get_duration(TouchSensorManager *manager, uint8_t index)
     return manager->sensors[index].duration;
 }
 
-bool touch_sensor_is_long_press(TouchSensorManager *manager, uint8_t index, uint64_t threshold)
-{
-    if (index >= TOUCH_SENSOR_COUNT)
-        return false;
-
-    return touch_sensor_is_held(manager, index) &&
-           touch_sensor_get_duration(manager, index) >= threshold;
-}
-
 uint8_t touch_sensor_get_beep_count(TouchSensorManager *manager, uint8_t index)
 {
     if (index >= TOUCH_SENSOR_COUNT)
         return 0;
 
-    return manager->sensors[index].beepCount;
-}
-
-uint8_t touch_sensor_get_last_beep_count(TouchSensorManager *manager, uint8_t index)
-{
-    if (index >= TOUCH_SENSOR_COUNT)
-        return 0;
-
+    if (manager->sensors[index].currentState) {
+        return manager->sensors[index].beepCount;
+    }
     return manager->sensors[index].lastBeepCount;
 }
 
-void touch_sensor_reset_beep_count(TouchSensorManager *manager, uint8_t index)
+bool touch_sensor_poll_beep(TouchSensorManager *manager, uint8_t index, uint64_t interval_ms, uint8_t *beep_index)
 {
-    if (index >= TOUCH_SENSOR_COUNT)
-        return;
+    if (index >= TOUCH_SENSOR_COUNT || interval_ms == 0) {
+        return false;
+    }
 
-    manager->sensors[index].beepCount = 0;
-    manager->sensors[index].lastBeepCount = 0;
-}
+    TouchSensor *sensor = &manager->sensors[index];
+    if (!sensor->currentState) {
+        return false;
+    }
 
-void touch_sensor_increment_beep_count(TouchSensorManager *manager, uint8_t index)
-{
-    if (index >= TOUCH_SENSOR_COUNT)
-        return;
+    uint64_t expected_beeps = sensor->duration / interval_ms;
+    if (expected_beeps > sensor->beepCount) {
+        sensor->beepCount = (uint8_t)expected_beeps;
+    }
 
-    manager->sensors[index].beepCount++;
-}
+    if (sensor->beepCount > sensor->lastBeepCount) {
+        sensor->lastBeepCount++;
+        if (beep_index) {
+            *beep_index = sensor->lastBeepCount;
+        }
+        return true;
+    }
 
-void touch_sensor_add_to_last_beep_count(TouchSensorManager *manager, uint8_t index)
-{
-    if (index >= TOUCH_SENSOR_COUNT)
-        return;
-
-    manager->sensors[index].lastBeepCount += manager->sensors[index].beepCount;
-}
-
-uint8_t touch_sensor_get_pin(uint8_t index)
-{
-    if (index >= TOUCH_SENSOR_COUNT)
-        return 0;
-
-    return touch_pins[index];
+    return false;
 }

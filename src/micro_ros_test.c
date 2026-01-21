@@ -50,25 +50,24 @@ int main() {
 
 #if PROJECT_USE_FREERTOS
     if (pico_wifi_connect() != 0) {
-        board_blink_error();
+        return -1;
     }
 
     if (netif_default) {
         printf("[INFO] IP Address: %s\n", ip4addr_ntoa(netif_ip4_addr(netif_default)));
     }
-    board_set_wifi_status(1);
 #endif
 
     // Initialize servo controller
     if (servo_ctrl_init(SERVO_PIN) != 0) {
         printf("ERROR: Failed to initialize servo controller\n");
-        board_blink_error();
+        return -1;
     }
 
     // Initialize micro-ROS application
     if (uros_main_init() != 0) {
         printf("ERROR: Failed to initialize micro-ROS application\n");
-        board_blink_error();
+        return -1;
     }
 
     // Run main application loop

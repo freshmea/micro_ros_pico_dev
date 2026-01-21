@@ -73,15 +73,6 @@ bool touch_sensor_is_held(TouchSensorManager *manager, uint8_t index);
 uint64_t touch_sensor_get_duration(TouchSensorManager *manager, uint8_t index);
 
 /**
- * @brief Check if sensor is long pressed
- * @param manager Pointer to TouchSensorManager instance
- * @param index Sensor index (0-2)
- * @param threshold Threshold in milliseconds
- * @return true if held longer than threshold
- */
-bool touch_sensor_is_long_press(TouchSensorManager *manager, uint8_t index, uint64_t threshold);
-
-/**
  * @brief Get current beep count
  * @param manager Pointer to TouchSensorManager instance
  * @param index Sensor index (0-2)
@@ -90,39 +81,13 @@ bool touch_sensor_is_long_press(TouchSensorManager *manager, uint8_t index, uint
 uint8_t touch_sensor_get_beep_count(TouchSensorManager *manager, uint8_t index);
 
 /**
- * @brief Get last beep count
+ * @brief Check if a new beep should be triggered based on hold duration
  * @param manager Pointer to TouchSensorManager instance
  * @param index Sensor index (0-2)
- * @return Last beep count
+ * @param interval_ms Interval in milliseconds between beeps
+ * @param beep_index Output beep index (1-based)
+ * @return true if a new beep should be played
  */
-uint8_t touch_sensor_get_last_beep_count(TouchSensorManager *manager, uint8_t index);
-
-/**
- * @brief Reset beep count for specific sensor
- * @param manager Pointer to TouchSensorManager instance
- * @param index Sensor index (0-2)
- */
-void touch_sensor_reset_beep_count(TouchSensorManager *manager, uint8_t index);
-
-/**
- * @brief Increment beep count for specific sensor
- * @param manager Pointer to TouchSensorManager instance
- * @param index Sensor index (0-2)
- */
-void touch_sensor_increment_beep_count(TouchSensorManager *manager, uint8_t index);
-
-/**
- * @brief Add current beep count to last beep count
- * @param manager Pointer to TouchSensorManager instance
- * @param index Sensor index (0-2)
- */
-void touch_sensor_add_to_last_beep_count(TouchSensorManager *manager, uint8_t index);
-
-/**
- * @brief Get pin number for sensor
- * @param index Sensor index (0-2)
- * @return GPIO pin number
- */
-uint8_t touch_sensor_get_pin(uint8_t index);
+bool touch_sensor_poll_beep(TouchSensorManager *manager, uint8_t index, uint64_t interval_ms, uint8_t *beep_index);
 
 #endif // TOUCH_SENSOR_H

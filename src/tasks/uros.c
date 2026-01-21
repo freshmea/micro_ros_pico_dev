@@ -58,29 +58,28 @@ static void servo_callback(const void *msgin)
 {
     const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msgin;
 
-    board_set_msg_status(1);
+    gpio_put(MSG_STATUS_PIN, 1);
 
     if (msg->data % 2 == 0)
     {
-        board_set_onboard_led(1);
-        board_set_pwm_led(1);
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
+        gpio_put(PWM_LED_PIN, 1);
     }
     else
     {
-        board_set_onboard_led(0);
-        board_set_pwm_led(0);
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
+        gpio_put(PWM_LED_PIN, 0);
     }
 
     servo_ctrl_move_to_angle(SERVO_PIN, msg->data);
 
     sleep_ms(MSG_STATUS_PULSE_MS);
-    board_set_msg_status(0);
+    gpio_put(MSG_STATUS_PIN, 0);
 }
 
 static void servo2_callback(const void *msgin)
 {
     const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msgin;
-    printf("Servo2 angle command received: %d\n", msg->data);
     servo_ctrl_move_to_angle(SERVO_PIN2, msg->data);
     display_set_message("Servo2 moved", 12);
 }
@@ -88,8 +87,6 @@ static void servo2_callback(const void *msgin)
 static void display_message_callback(const void *msgin)
 {
     const std_msgs__msg__String *msg = (const std_msgs__msg__String *)msgin;
-    printf("Display message received: %.*s\n", (int)msg->data.size, msg->data.data);
-
     display_set_message(msg->data.data, msg->data.size);
 }
 
@@ -199,6 +196,7 @@ int uros_main_init(void) {
     msg_display.data.data = display_msg_buf;
     msg_display.data.capacity = sizeof(display_msg_buf);
     msg_display.data.size = 0;
+
     // Executor 초기화 및 핸들러 4 추가(Subscriber 3, timer 1)
     rclc_executor_init(&executor, &support.context, 4, &allocator);
     rclc_executor_add_timer(&executor, &touch_timer);
