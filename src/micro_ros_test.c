@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 
 #include "pico/stdlib.h"
@@ -26,6 +27,19 @@ void display_set_status(const char *ssid, bool connected, const char *ip)
 void display_set_hello(const char *text)
 {
     printf("[display] %s\n", text ? text : "");
+}
+
+void display_set_message(const char *text, size_t len)
+{
+    printf("[display] message(%u): %.*s\n",
+           (unsigned)len,
+           (int)len,
+           text ? text : "");
+}
+
+void display_next_screen(void)
+{
+    printf("[display] next screen\n");
 }
 
 int main() {

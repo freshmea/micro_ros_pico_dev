@@ -11,6 +11,7 @@
 #include "pico/stdio_usb.h"
 #include "pico/stdlib.h"
 #include "project_config.h"
+#include "tasks/display_task.h"
 
 void periph_task_init(void)
 {
@@ -87,6 +88,10 @@ void periph_task(void *params)
             if (touch_sensor_is_pressed(&touch, i)) {
                 buzzer_play_beep(&buzzer, 1200, 100);
             }
+        }
+
+        if (touch_sensor_is_pressed(&touch, 2)) {
+            display_next_screen();
         }
 
         buzzer_update(&buzzer, now_ms);

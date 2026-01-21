@@ -61,6 +61,7 @@ target_link_libraries(bindbot
     hardware_clocks
     hardware_irq
     fixmath
+    u8g2_external
     microros
     hardware_i2c
     hardware_sync

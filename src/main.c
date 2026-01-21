@@ -25,7 +25,6 @@
 #define DISPLAY_TASK_PRIORITY 1
 PassiveBuzzerManager buzzer;
 TouchSensorManager touch;
-SSD1306_t ssd1306;
 
 // Minimal FreeRTOS hook implementations (required when linking FreeRTOS)
 void vApplicationMallocFailedHook(void) { configASSERT(0); }
