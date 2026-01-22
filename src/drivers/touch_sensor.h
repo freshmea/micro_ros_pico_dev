@@ -4,12 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "pico/stdlib.h"
-
-#define TOUCH_SENSOR_COUNT 3
-#define TOUCH_PIN_1 18
-#define TOUCH_PIN_2 19
-#define TOUCH_PIN_3 20
-#define LONG_PRESS_THRESHOLD_MS 1000
+#include "config/project_config.h"
 
 typedef struct
 {

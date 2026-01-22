@@ -51,6 +51,10 @@
 #define BUZZER_PIN 16    // GP16: 수동 버저 출력
 #define WS2812_PIN 8     // GP8: WS2812 데이터 핀
 #define WS2812_LED_COUNT 4
+#define TOUCH_SENSOR_COUNT 3
+#define TOUCH_PIN_1 18
+#define TOUCH_PIN_2 19
+#define TOUCH_PIN_3 20
 
 // ============================================================================
 // 서보 모터 설정
