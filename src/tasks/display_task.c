@@ -11,20 +11,7 @@
 #include "project_config.h"
 #include "u8g2.h"
 #include "u8x8.h"
-
-#define DISPLAY_WIDTH 128
-#define DISPLAY_HEIGHT 32
-#define DISPLAY_I2C_PORT i2c1
-#define DISPLAY_SDA_PIN 6
-#define DISPLAY_SCL_PIN 7
-#define DISPLAY_I2C_ADDR 0x3C
-#define DISPLAY_REFRESH_MS 50
-#define DISPLAY_SCROLL_STEP 1
-#define DISPLAY_MESSAGE_MAX 128
-#define DISPLAY_SSID_MAX 32
-#define DISPLAY_IP_MAX 15
-#define DISPLAY_LINE1_Y 15
-#define DISPLAY_LINE2_Y 31
+#include "project_config.h"
 
 typedef enum {
     DISPLAY_CMD_SET_STATUS,

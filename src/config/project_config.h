@@ -57,6 +57,23 @@
 #define TOUCH_PIN_3 20
 
 // ============================================================================
+// 디스플레이 설정
+// ============================================================================
+#define DISPLAY_WIDTH 128
+#define DISPLAY_HEIGHT 32
+#define DISPLAY_I2C_PORT i2c1
+#define DISPLAY_SDA_PIN 6
+#define DISPLAY_SCL_PIN 7
+#define DISPLAY_I2C_ADDR 0x3C
+#define DISPLAY_REFRESH_MS 50
+#define DISPLAY_SCROLL_STEP 1
+#define DISPLAY_MESSAGE_MAX 128
+#define DISPLAY_SSID_MAX 32
+#define DISPLAY_IP_MAX 15
+#define DISPLAY_LINE1_Y 15
+#define DISPLAY_LINE2_Y 31
+
+// ============================================================================
 // 서보 모터 설정
 // ============================================================================
 #define SERVO_PWM_FREQ_HZ 50 // 서보 PWM 주파수 (Hz)
