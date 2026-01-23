@@ -5,8 +5,10 @@
 #include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int32.h>
 #include <std_msgs/msg/string.h>
+#include <std_msgs/msg/u_int8_multi_array.h>
 
 #include <rosidl_runtime_c/string_functions.h>
+#include <rosidl_runtime_c/primitives_sequence_functions.h>
 
 #include "FreeRTOS.h"
 #include "hardware/adc.h"
@@ -37,6 +39,9 @@ static std_msgs__msg__Int32 msg_servo2;
 static rcl_subscription_t display_subscriber;
 static std_msgs__msg__String msg_display;
 static char display_msg_buf[DISPLAY_MESSAGE_MAX + 1];
+static rcl_subscription_t ws2812_subscriber;
+static std_msgs__msg__UInt8MultiArray msg_ws2812;
+static uint8_t ws2812_cmd_buf[4];
 
 static bool wifi_connected = false;
 static bool uros_connected = false;
@@ -82,12 +87,26 @@ static void servo_callback(const void *msgin) {
 static void servo2_callback(const void *msgin) {
     const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msgin;
     servo_ctrl_move_to_angle(SERVO_PIN2, msg->data);
-    display_set_message("Servo2 moved", 12);
 }
 
 static void display_message_callback(const void *msgin) {
     const std_msgs__msg__String *msg = (const std_msgs__msg__String *)msgin;
     display_set_message(msg->data.data, msg->data.size);
+}
+
+static void ws2812_callback(const void *msgin)
+{
+    const std_msgs__msg__UInt8MultiArray *msg = (const std_msgs__msg__UInt8MultiArray *)msgin;
+    if (msg->data.size < 4) {
+        DEBUG_PRINTF("[uros] ws2812 rx too short: %u bytes\n", (unsigned)msg->data.size);
+        return;
+    }
+    uint8_t index = msg->data.data[0];
+    uint8_t r = msg->data.data[1];
+    uint8_t g = msg->data.data[2];
+    uint8_t b = msg->data.data[3];
+    DEBUG_PRINTF("[uros] ws2812 rx: idx=%u r=%u g=%u b=%u\n", index, r, g, b);
+    periph_ws2812_set_pixel(index, r, g, b);
 }
 
 void uros_task(void *params) {
@@ -193,6 +212,9 @@ int uros_main_init(void) {
                                            "servo2_angle"));
     RCCHECK(rclc_subscription_init_default(&display_subscriber, &node,
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String), "display_message"));
+    RCCHECK(rclc_subscription_init_default(&ws2812_subscriber, &node,
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8MultiArray),
+                                           "ws2812_pixel"));
 
     // String 버퍼 초기화
     rosidl_runtime_c__String__init(&msg_display.data);
@@ -200,13 +222,52 @@ int uros_main_init(void) {
     msg_display.data.capacity = sizeof(display_msg_buf);
     msg_display.data.size = 0;
 
-    // Executor 초기화 및 핸들러 4 추가(Subscriber 3, timer 1)
-    rclc_executor_init(&executor, &support.context, 4, &allocator);
-    rclc_executor_add_timer(&executor, &touch_timer);
-    rclc_executor_add_subscription(&executor, &servo_subscriber, &msg_servo, &servo_callback, ON_NEW_DATA);
-    rclc_executor_add_subscription(&executor, &servo_subscriber2, &msg_servo2, &servo2_callback, ON_NEW_DATA);
-    rclc_executor_add_subscription(&executor, &display_subscriber, &msg_display, &display_message_callback,
-                                   ON_NEW_DATA);
+    // WS2812 커맨드 버퍼 초기화
+    rosidl_runtime_c__uint8__Sequence__init(&msg_ws2812.data, 0);
+    msg_ws2812.data.data = ws2812_cmd_buf;
+    msg_ws2812.data.capacity = sizeof(ws2812_cmd_buf);
+    // Allow deserialization into the full fixed buffer
+    msg_ws2812.data.size = msg_ws2812.data.capacity;
+
+    // Executor 초기화 및 핸들러 5 추가(Subscriber 4, timer 1, publisher 1)
+    rcl_ret_t exec_rc = rclc_executor_init(&executor, &support.context, 5, &allocator);
+    if (exec_rc != RCL_RET_OK) {
+        DEBUG_PRINTF("[uros] executor init failed rc=%d\n", (int)exec_rc);
+        return -1;
+    }
+
+    exec_rc = rclc_executor_add_timer(&executor, &touch_timer);
+    if (exec_rc != RCL_RET_OK) {
+        DEBUG_PRINTF("[uros] executor add timer failed rc=%d\n", (int)exec_rc);
+        return -1;
+    }
+
+    exec_rc = rclc_executor_add_subscription(&executor, &servo_subscriber, &msg_servo, &servo_callback, ON_NEW_DATA);
+    if (exec_rc != RCL_RET_OK) {
+        DEBUG_PRINTF("[uros] executor add servo failed rc=%d\n", (int)exec_rc);
+        return -1;
+    }
+
+    exec_rc =
+        rclc_executor_add_subscription(&executor, &servo_subscriber2, &msg_servo2, &servo2_callback, ON_NEW_DATA);
+    if (exec_rc != RCL_RET_OK) {
+        DEBUG_PRINTF("[uros] executor add servo2 failed rc=%d\n", (int)exec_rc);
+        return -1;
+    }
+
+    exec_rc = rclc_executor_add_subscription(&executor, &display_subscriber, &msg_display,
+                                             &display_message_callback, ON_NEW_DATA);
+    if (exec_rc != RCL_RET_OK) {
+        DEBUG_PRINTF("[uros] executor add display failed rc=%d\n", (int)exec_rc);
+        return -1;
+    }
+
+    exec_rc =
+        rclc_executor_add_subscription(&executor, &ws2812_subscriber, &msg_ws2812, &ws2812_callback, ON_NEW_DATA);
+    if (exec_rc != RCL_RET_OK) {
+        DEBUG_PRINTF("[uros] executor add ws2812 failed rc=%d\n", (int)exec_rc);
+        return -1;
+    }
 
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
     uros_running = true;
@@ -220,7 +281,7 @@ void uros_main_run(void) {
     TickType_t last_ping = xTaskGetTickCount();
 
     while (true) {
-        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10));
 
         // Make sure WiFi/lwIP driver progresses even while waiting
         cyw43_arch_poll();
@@ -242,7 +303,7 @@ void uros_main_run(void) {
 }
 
 void uros_main_spin_once(void) {
-    rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+    rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10));
     // Make sure WiFi/lwIP driver progresses even while waiting
     cyw43_arch_poll();
 }
@@ -257,8 +318,10 @@ void uros_main_cleanup(void) {
     RCSOFTCHECK(rcl_publisher_fini(&touch_state_publisher, &node));
     DEBUG_PRINTF("[uros] cleanup: string_reset\n");
     msg_display.data.size = 0;
+    msg_ws2812.data.size = 0;
     DEBUG_PRINTF("[uros] cleanup: display_sub_fini\n");
     RCSOFTCHECK(rcl_subscription_fini(&display_subscriber, &node));
+    RCSOFTCHECK(rcl_subscription_fini(&ws2812_subscriber, &node));
     DEBUG_PRINTF("[uros] cleanup: servo2_sub_fini\n");
     RCSOFTCHECK(rcl_subscription_fini(&servo_subscriber2, &node));
     DEBUG_PRINTF("[uros] cleanup: servo_sub_fini\n");

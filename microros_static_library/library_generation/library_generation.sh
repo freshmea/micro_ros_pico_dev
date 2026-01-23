@@ -10,9 +10,10 @@ git clone https://github.com/raspberrypi/pico-sdk /pico-sdk
 
 ######## Init ########
 
+mkdir -p /uros_ws/src
 cd /uros_ws
 
-source /opt/ros/$ROS_DISTRO/setup.bash
+source /opt/ros/humble/setup.bash
 source install/local_setup.bash
 
 ros2 run micro_ros_setup create_firmware_ws.sh generate_lib
