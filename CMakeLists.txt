@@ -48,6 +48,10 @@ add_executable(bindbot
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
     src/drivers/ws2812_driver.c
+    src/modes/mode_manager.c
+    src/modes/mode1.c
+    src/modes/mode2.c
+    src/modes/mode3.c
     src/tasks/display_task.c
     src/tasks/periph_task.c
     src/tasks/uros.c
@@ -80,6 +84,7 @@ target_include_directories(bindbot PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
     ${CMAKE_CURRENT_LIST_DIR}/src/transport
     ${CMAKE_CURRENT_LIST_DIR}/src/tasks
+    ${CMAKE_CURRENT_LIST_DIR}/src/modes
     ${CMAKE_CURRENT_LIST_DIR}/src/config
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
     external/libfixmath/libfixmath
@@ -125,6 +130,10 @@ add_executable(rtos_micro_ros_test
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
     src/drivers/ws2812_driver.c
+    src/modes/mode_manager.c
+    src/modes/mode1.c
+    src/modes/mode2.c
+    src/modes/mode3.c
     src/tasks/periph_task.c
     src/tasks/uros.c
     src/drivers/ssd1306_driver.c
@@ -155,6 +164,7 @@ target_include_directories(rtos_micro_ros_test PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
     ${CMAKE_CURRENT_LIST_DIR}/src/transport
     ${CMAKE_CURRENT_LIST_DIR}/src/tasks
+    ${CMAKE_CURRENT_LIST_DIR}/src/modes
     ${CMAKE_CURRENT_LIST_DIR}/src/config
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
     external/libfixmath/libfixmath
@@ -172,6 +182,10 @@ add_executable(micro_ros_test
     src/drivers/passive_buzzer_manager.c
     src/drivers/touch_sensor.c
     src/drivers/ws2812_driver.c
+    src/modes/mode_manager.c
+    src/modes/mode1.c
+    src/modes/mode2.c
+    src/modes/mode3.c
     src/tasks/periph_task.c
     src/tasks/uros.c
     src/drivers/ssd1306_driver.c
@@ -202,6 +216,7 @@ target_include_directories(micro_ros_test PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers
     ${CMAKE_CURRENT_LIST_DIR}/src/transport
     ${CMAKE_CURRENT_LIST_DIR}/src/tasks
+    ${CMAKE_CURRENT_LIST_DIR}/src/modes
     ${CMAKE_CURRENT_LIST_DIR}/src/config
     ${CMAKE_CURRENT_LIST_DIR}/src/config/freertos
     external/libfixmath/libfixmath

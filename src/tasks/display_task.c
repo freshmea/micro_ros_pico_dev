@@ -16,6 +16,8 @@
 typedef enum {
     DISPLAY_CMD_SET_STATUS,
     DISPLAY_CMD_SET_MESSAGE,
+    DISPLAY_CMD_SET_MODE,
+    DISPLAY_CMD_SET_NUMBER,
     DISPLAY_CMD_NEXT_SCREEN
 } display_cmd_type_t;
 
@@ -31,6 +33,12 @@ typedef struct {
         struct {
             char message[DISPLAY_MESSAGE_MAX + 1];
         } message;
+        struct {
+            uint8_t mode;
+        } mode;
+        struct {
+            int value;
+        } number;
     } data;
 } display_cmd_t;
 
@@ -46,7 +54,8 @@ typedef struct {
     int16_t message_scroll_x;
     bool wifi_connected;
     bool uros_connected;
-    uint8_t screen_index;
+    uint8_t mode;
+    int number_value;
 } display_state_t;
 
 typedef struct {
@@ -173,18 +182,23 @@ static void display_draw(const display_state_t *state)
     u8g2_ClearBuffer(&display_u8g2);
     u8g2_SetFont(&display_u8g2, u8g2_font_gulim16_t_korean2);
 
-    if (state->screen_index == 0) {
+    if (state->mode == 0) {
         snprintf(line1, sizeof(line1),
-                 "화면1 wifi:%s ur:%s",
+                 "모드1 wifi:%s uros:%s",
                  state->wifi_connected ? "O" : "X",
                  state->uros_connected ? "O" : "X");
         u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE1_Y, line1);
         u8g2_DrawUTF8(&display_u8g2, state->status_scroll_x, DISPLAY_LINE2_Y, state->status_line);
-    } else {
+    } else if (state->mode == 1) {
         snprintf(line1, sizeof(line1),
-                 "화면2 길이:%u", (unsigned)state->message_len);
+                 "모드2 길이:%u", (unsigned)state->message_len);
         u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE1_Y, line1);
         u8g2_DrawUTF8(&display_u8g2, state->message_scroll_x, DISPLAY_LINE2_Y, message);
+    } else {
+        snprintf(line1, sizeof(line1), "모드3 숫자");
+        u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE1_Y, line1);
+        snprintf(line1, sizeof(line1), "%d", state->number_value);
+        u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE2_Y, line1);
     }
 
     u8g2_SendBuffer(&display_u8g2);
@@ -228,6 +242,24 @@ void display_set_message(const char *text, size_t len)
     display_queue_send(&cmd);
 }
 
+void display_set_mode(uint8_t mode)
+{
+    display_cmd_t cmd = {
+        .type = DISPLAY_CMD_SET_MODE
+    };
+    cmd.data.mode.mode = mode;
+    display_queue_send(&cmd);
+}
+
+void display_set_number(int value)
+{
+    display_cmd_t cmd = {
+        .type = DISPLAY_CMD_SET_NUMBER
+    };
+    cmd.data.number.value = value;
+    display_queue_send(&cmd);
+}
+
 void display_next_screen(void)
 {
     display_cmd_t cmd = {
@@ -253,7 +285,8 @@ void display_task(void *params)
     snprintf(state.ip, sizeof(state.ip), "0.0.0.0");
     state.wifi_connected = false;
     state.uros_connected = false;
-    state.screen_index = 0;
+    state.mode = 0;
+    state.number_value = 10;
     display_update_status_line(&state);
     display_update_message(&state);
 
@@ -277,22 +310,30 @@ void display_task(void *params)
                 display_update_message(&state);
                 needs_redraw = true;
                 break;
+            case DISPLAY_CMD_SET_MODE:
+                state.mode = cmd.data.mode.mode;
+                needs_redraw = true;
+                break;
+            case DISPLAY_CMD_SET_NUMBER:
+                state.number_value = cmd.data.number.value;
+                needs_redraw = true;
+                break;
             case DISPLAY_CMD_NEXT_SCREEN:
-                state.screen_index = (uint8_t)((state.screen_index + 1) % 2);
+                state.mode = (uint8_t)((state.mode + 1) % 3);
                 needs_redraw = true;
                 break;
             }
         }
 
         bool scrolled = false;
-        if (state.screen_index == 0 && state.status_width > DISPLAY_WIDTH) {
+        if (state.mode == 0 && state.status_width > DISPLAY_WIDTH) {
             state.status_scroll_x -= DISPLAY_SCROLL_STEP;
             if (state.status_scroll_x < -state.status_width) {
                 state.status_scroll_x = DISPLAY_WIDTH;
             }
             scrolled = true;
         }
-        if (state.screen_index == 1 && state.message_width > DISPLAY_WIDTH) {
+        if (state.mode == 1 && state.message_width > DISPLAY_WIDTH) {
             state.message_scroll_x -= DISPLAY_SCROLL_STEP;
             if (state.message_scroll_x < -state.message_width) {
                 state.message_scroll_x = DISPLAY_WIDTH;

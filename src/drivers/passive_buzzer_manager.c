@@ -48,7 +48,6 @@ static void noTone(uint gpio)
 void buzzer_init(PassiveBuzzerManager *manager)
 {
     manager->buzzerPin = BUZZER_PIN;
-    manager->buttonPin = PULLUP_BUTTON_PIN;
     manager->isPlaying = false;
     manager->playStartTime = 0;
     manager->currentNoteStartTime = 0;
@@ -57,7 +56,6 @@ void buzzer_init(PassiveBuzzerManager *manager)
     manager->queueEnd = 0;
     manager->queueSize = 0;
     manager->noteActive = false;
-    manager->lastButtonState = false;
 
     // PWM slice는 핀 설정 이후 계산
     slice_num = pwm_gpio_to_slice_num(manager->buzzerPin);
@@ -215,18 +213,6 @@ int buzzer_get_queue_size(PassiveBuzzerManager *manager)
 bool buzzer_is_queue_full(PassiveBuzzerManager *manager)
 {
     return manager->queueSize >= MAX_NOTES;
-}
-
-void buzzer_check_button(PassiveBuzzerManager *manager)
-{
-    bool currentButtonState = !gpio_get(manager->buttonPin); // 풀업이므로 반전
-    // 버튼이 눌렸을 때 (rising edge)
-    if (currentButtonState && !manager->lastButtonState)
-    {
-        buzzer_play_random(manager);
-    }
-
-    manager->lastButtonState = currentButtonState;
 }
 
 void buzzer_play_beep(PassiveBuzzerManager *manager, int frequency, int duration)

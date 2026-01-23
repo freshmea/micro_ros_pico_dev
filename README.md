@@ -218,7 +218,6 @@ sudo picotool load bindbot.uf2 -f
 - `uros_main` 분리 및 FreeRTOS 태스크 구조 정리
 - rtos 에서 wifi 와 pwm 제어가 동시에 잘 되지 않는 점 문제 해결
   - irq 중복 초기화되어 hardware crash 발생 문제 수정
-  - shared 구조에서 exclusive 로 따로 irq 설정 변경(wifi-> shared, pwm-> exclusive)
 
 ---
 
@@ -313,3 +312,17 @@ sudo picotool load bindbot.uf2 -f
 - 터치 센서 비프 카운트/릴리즈 처리 보완 및 0.5초 간격 비프음/주파수 루프(8회) 적용
 - WS2812 패턴 8개 확장 및 버튼 릴리즈로 패턴 선택(솔리드 제외)
 - 보드 제어 헬퍼 제거 후 직접 GPIO 제어로 정리
+
+---
+
+## 2026_01_23
+
+---
+
+- uros 연결 상태를 디스플레이에 표시 (wifi 옆에 uros O/X)
+- uros 재연결 로직 개선 (5초 재시도, ping 체크)
+- WiFi 연결 비블로킹 전환 및 vTaskDelay 양보
+- cyw43 초기화 중복 방지 (pico_wifi_connect 가드 추가)
+- uros cleanup 디버깅 로그 추가 및 정리 안정화
+- 정적 문자열 버퍼 fini 호출 제거로 크래시 방지
+  - shared 구조에서 exclusive 로 따로 irq 설정 변경(wifi-> shared, pwm-> exclusive)

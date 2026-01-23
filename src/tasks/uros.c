@@ -74,12 +74,10 @@ static void servo_callback(const void *msgin)
     if (msg->data % 2 == 0)
     {
         cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
-        gpio_put(PWM_LED_PIN, 1);
     }
     else
     {
         cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
-        gpio_put(PWM_LED_PIN, 0);
     }
 
     servo_ctrl_move_to_angle(SERVO_PIN, msg->data);

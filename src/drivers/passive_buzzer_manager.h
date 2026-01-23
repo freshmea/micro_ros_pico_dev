@@ -15,7 +15,6 @@ typedef struct
 typedef struct
 {
     int buzzerPin;
-    int buttonPin;
     bool isPlaying;
     uint64_t playStartTime;
     uint64_t currentNoteStartTime;
@@ -25,7 +24,6 @@ typedef struct
     int queueSize;
     bool noteActive;
     MelodyNote melodyQueue[MAX_NOTES];
-    bool lastButtonState;
 } PassiveBuzzerManager;
 
 /**
@@ -95,12 +93,6 @@ int buzzer_get_queue_size(PassiveBuzzerManager *manager);
  * @return true if queue is full, false otherwise
  */
 bool buzzer_is_queue_full(PassiveBuzzerManager *manager);
-
-/**
- * @brief Check button state and play random melody if pressed
- * @param manager Pointer to PassiveBuzzerManager instance
- */
-void buzzer_check_button(PassiveBuzzerManager *manager);
 
 // Predefined melodies
 void buzzer_play_beep(PassiveBuzzerManager *manager, int frequency, int duration);

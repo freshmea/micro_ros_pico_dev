@@ -41,6 +41,16 @@ void display_set_message(const char *text, size_t len)
            text ? text : "");
 }
 
+void display_set_mode(uint8_t mode)
+{
+    printf("[display] mode %u\n", (unsigned)mode);
+}
+
+void display_set_number(int value)
+{
+    printf("[display] number %d\n", value);
+}
+
 void display_next_screen(void)
 {
     printf("[display] next screen\n");
