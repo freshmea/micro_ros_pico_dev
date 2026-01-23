@@ -5,8 +5,10 @@
 #include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int32.h>
 #include <std_msgs/msg/string.h>
+#include <std_msgs/msg/u_int8_multi_array.h>
 
 #include <rosidl_runtime_c/string_functions.h>
+#include <rosidl_runtime_c/primitives_sequence_functions.h>
 
 #include "FreeRTOS.h"
 #include "hardware/adc.h"
@@ -38,31 +40,22 @@ static std_msgs__msg__Int32 msg_servo2;
 static rcl_subscription_t display_subscriber;
 static std_msgs__msg__String msg_display;
 static char display_msg_buf[DISPLAY_MESSAGE_MAX + 1];
+static rcl_subscription_t display_bitmap_subscriber;
+static std_msgs__msg__UInt8MultiArray msg_display_bitmap;
+static uint8_t display_bitmap_buf[DISPLAY_BITMAP_BYTES];
 
 static bool wifi_connected = false;
 static bool uros_connected = false;
 static bool uros_running = false;
 static char wifi_ip_buf[16] = "0.0.0.0";
 
-// touch_state_publisher 관련 변수
-static rcl_publisher_t touch_state_publisher;
 static rcl_timer_t touch_timer;
-static std_msgs__msg__Bool touch_state_msg;
+// touch publisher removed
 
 static void touch_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
     (void)last_call_time;
-    if (timer != NULL)
-    {
-        if (!uros_running) {
-            return;
-        }
-        touch_state_msg.data = touch_sensor_is_held(&touch, 0);
-        rcl_ret_t pub_ret = rcl_publish(&touch_state_publisher, &touch_state_msg, NULL);
-        if (pub_ret != RCL_RET_OK) {
-            DEBUG_PRINTF("[uros] touch publish failed: %d\n", (int)pub_ret);
-        }
-    }
+    (void)timer;
 }
 
 static void servo_callback(const void *msgin)
@@ -90,7 +83,6 @@ static void servo2_callback(const void *msgin)
 {
     const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msgin;
     servo_ctrl_move_to_angle(SERVO_PIN2, msg->data);
-    display_set_message("Servo2 moved", 12);
 }
 
 static void display_message_callback(const void *msgin)
@@ -98,6 +90,14 @@ static void display_message_callback(const void *msgin)
     const std_msgs__msg__String *msg = (const std_msgs__msg__String *)msgin;
     display_set_message(msg->data.data, msg->data.size);
 }
+
+static void display_bitmap_callback(const void *msgin)
+{
+    const std_msgs__msg__UInt8MultiArray *msg = (const std_msgs__msg__UInt8MultiArray *)msgin;
+    DEBUG_PRINTF("[uros] display_bitmap rx: %u bytes\n", (unsigned)msg->data.size);
+    display_set_bitmap(msg->data.data, msg->data.size);
+}
+
 
 void uros_task(void *params)
 {
@@ -196,35 +196,54 @@ int uros_main_init(void) {
         rcl_context_get_rmw_context(&support.context), 0);
     rclc_node_init_default(&node, ROS_NODE_NAME, ROS_NAMESPACE, &support);
 
-    RCCHECK(rclc_publisher_init_default(
-        &touch_state_publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
-        "touch_1/state"));
-
-    RCCHECK(rclc_timer_init_default2(
+    rcl_ret_t rc = rclc_timer_init_default2(
         &touch_timer,
         &support,
-        RCL_MS_TO_NS(10),
+        RCL_MS_TO_NS(100),
         touch_timer_callback,
-        true));
+        true);
+    DEBUG_PRINTF("[uros] timer init rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
 
-    RCCHECK(rclc_subscription_init_default(
+    rc = rclc_subscription_init_default(
         &servo_subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-        "servo_angle"));
+        "servo_angle");
+    DEBUG_PRINTF("[uros] sub servo_angle rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
 
-    RCCHECK(rclc_subscription_init_default(
+    rc = rclc_subscription_init_default(
         &servo_subscriber2,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-        "servo2_angle"));
-    RCCHECK(rclc_subscription_init_default(
+        "servo2_angle");
+    DEBUG_PRINTF("[uros] sub servo2_angle rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
+    rc = rclc_subscription_init_default(
         &display_subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String),
-        "display_message"));
+        "display_message");
+    DEBUG_PRINTF("[uros] sub display_message rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
+    rc = rclc_subscription_init_default(
+        &display_bitmap_subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8MultiArray),
+        "display_bitmap");
+    DEBUG_PRINTF("[uros] sub display_bitmap rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
 
     // String 버퍼 초기화
     rosidl_runtime_c__String__init(&msg_display.data);
@@ -232,27 +251,58 @@ int uros_main_init(void) {
     msg_display.data.capacity = sizeof(display_msg_buf);
     msg_display.data.size = 0;
 
-    // Executor 초기화 및 핸들러 4 추가(Subscriber 3, timer 1)
-    rclc_executor_init(&executor, &support.context, 4, &allocator);
-    rclc_executor_add_timer(&executor, &touch_timer);
-    rclc_executor_add_subscription(
+    // Bitmap 버퍼 초기화
+    rosidl_runtime_c__uint8__Sequence__init(&msg_display_bitmap.data, 0);
+    msg_display_bitmap.data.data = display_bitmap_buf;
+    msg_display_bitmap.data.capacity = sizeof(display_bitmap_buf);
+    msg_display_bitmap.data.size = 0;
+
+    // Executor 초기화 및 핸들러 4 추가(Subscriber 4, timer 1)
+    rc = rclc_executor_init(&executor, &support.context, 4, &allocator);
+    DEBUG_PRINTF("[uros] executor init rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
+    rc = rclc_executor_add_subscription(
         &executor,
         &servo_subscriber,
         &msg_servo,
         &servo_callback,
         ON_NEW_DATA);
-    rclc_executor_add_subscription(
+    DEBUG_PRINTF("[uros] exec add servo rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
+    rc = rclc_executor_add_subscription(
         &executor,
         &servo_subscriber2,
         &msg_servo2,
         &servo2_callback,
         ON_NEW_DATA);
-    rclc_executor_add_subscription(
+    DEBUG_PRINTF("[uros] exec add servo2 rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
+    rc = rclc_executor_add_subscription(
         &executor,
         &display_subscriber,
         &msg_display,
         &display_message_callback,
         ON_NEW_DATA);
+    DEBUG_PRINTF("[uros] exec add display rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
+    rc = rclc_executor_add_subscription(
+        &executor,
+        &display_bitmap_subscriber,
+        &msg_display_bitmap,
+        &display_bitmap_callback,
+        ON_NEW_DATA);
+    DEBUG_PRINTF("[uros] exec add bitmap rc=%d\n", (int)rc);
+    if (rc != RCL_RET_OK) {
+        return 1;
+    }
 
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
     uros_running = true;
@@ -266,7 +316,10 @@ void uros_main_run(void) {
     TickType_t last_ping = xTaskGetTickCount();
 
     while (true) {
-        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+        rcl_ret_t rc = rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+        if (rc != RCL_RET_OK) {
+            DEBUG_PRINTF("[uros] executor spin rc=%d\n", (int)rc);
+        }
 
         // Make sure WiFi/lwIP driver progresses even while waiting
         cyw43_arch_poll();
@@ -299,12 +352,12 @@ void uros_main_cleanup(void) {
     RCSOFTCHECK(rclc_executor_fini(&executor));
     DEBUG_PRINTF("[uros] cleanup: timer_fini\n");
     RCSOFTCHECK(rcl_timer_fini(&touch_timer));
-    DEBUG_PRINTF("[uros] cleanup: publisher_fini\n");
-    RCSOFTCHECK(rcl_publisher_fini(&touch_state_publisher, &node));
     DEBUG_PRINTF("[uros] cleanup: string_reset\n");
     msg_display.data.size = 0;
+    msg_display_bitmap.data.size = 0;
     DEBUG_PRINTF("[uros] cleanup: display_sub_fini\n");
     RCSOFTCHECK(rcl_subscription_fini(&display_subscriber, &node));
+    RCSOFTCHECK(rcl_subscription_fini(&display_bitmap_subscriber, &node));
     DEBUG_PRINTF("[uros] cleanup: servo2_sub_fini\n");
     RCSOFTCHECK(rcl_subscription_fini(&servo_subscriber2, &node));
     DEBUG_PRINTF("[uros] cleanup: servo_sub_fini\n");

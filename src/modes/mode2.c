@@ -1,3 +1,8 @@
+/* 이 모드 mode2는 서보의 왼쪽과 오른쪽 작동 테스트그리고
+구독토픽의 디스플레이 표시를 테스트 할 수 있다.
+
+*/
+
 #include "modes/mode_common.h"
 #include "drivers/servo_ctrl.h"
 #include "project_config.h"

@@ -1,6 +1,8 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "FreeRTOS.h"
+#include "task.h"
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "lwip/netif.h"
@@ -51,9 +53,32 @@ void display_set_number(int value)
     printf("[display] number %d\n", value);
 }
 
+void display_set_bitmap(const uint8_t *data, size_t len)
+{
+    printf("[display] bitmap %u bytes\n", (unsigned)len);
+    (void)data;
+}
+
 void display_next_screen(void)
 {
     printf("[display] next screen\n");
+}
+
+void vApplicationMallocFailedHook(void) {
+    printf("[ERROR] FreeRTOS malloc failed\n");
+    taskDISABLE_INTERRUPTS();
+    for (;;) {
+        tight_loop_contents();
+    }
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name) {
+    (void)task;
+    printf("[ERROR] Stack overflow in task: %s\n", task_name ? task_name : "unknown");
+    taskDISABLE_INTERRUPTS();
+    for (;;) {
+        tight_loop_contents();
+    }
 }
 
 int main() {

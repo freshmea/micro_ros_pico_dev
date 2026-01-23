@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #define DISPLAY_MESSAGE_MAX 128
+#define DISPLAY_BITMAP_BYTES (128 * 32 / 8)
 
 void display_task_init(void);
 void display_task(void *params);
@@ -13,6 +14,7 @@ void display_set_status(const char *ssid, bool connected, const char *ip, bool u
 void display_set_message(const char *text, size_t len);
 void display_set_mode(uint8_t mode);
 void display_set_number(int value);
+void display_set_bitmap(const uint8_t *data, size_t len);
 void display_next_screen(void);
 
 #endif // DISPLAY_TASK_H

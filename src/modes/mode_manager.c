@@ -26,13 +26,20 @@ void mode3_exit(const mode_context_t *ctx);
 void mode3_update(const mode_context_t *ctx, uint64_t now_ms);
 void mode3_button(const mode_context_t *ctx, uint8_t button_id, uint64_t now_ms);
 
+void mode4_init(const mode_context_t *ctx);
+void mode4_enter(const mode_context_t *ctx, uint64_t now_ms);
+void mode4_exit(const mode_context_t *ctx);
+void mode4_update(const mode_context_t *ctx, uint64_t now_ms);
+void mode4_button(const mode_context_t *ctx, uint8_t button_id, uint64_t now_ms);
+
 static mode_context_t mode_ctx;
 static mode_id_t current_mode = MODE_COUNT;
 
 static const mode_ops_t mode_ops[MODE_COUNT] = {
     { mode1_init, mode1_enter, mode1_exit, mode1_update, mode1_button },
     { mode2_init, mode2_enter, mode2_exit, mode2_update, mode2_button },
-    { mode3_init, mode3_enter, mode3_exit, mode3_update, mode3_button }
+    { mode3_init, mode3_enter, mode3_exit, mode3_update, mode3_button },
+    { mode4_init, mode4_enter, mode4_exit, mode4_update, mode4_button }
 };
 
 void mode_manager_init(const mode_context_t *ctx)

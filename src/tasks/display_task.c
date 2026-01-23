@@ -18,6 +18,7 @@ typedef enum {
     DISPLAY_CMD_SET_MESSAGE,
     DISPLAY_CMD_SET_MODE,
     DISPLAY_CMD_SET_NUMBER,
+    DISPLAY_CMD_SET_BITMAP,
     DISPLAY_CMD_NEXT_SCREEN
 } display_cmd_type_t;
 
@@ -39,6 +40,10 @@ typedef struct {
         struct {
             int value;
         } number;
+        struct {
+            uint8_t data[DISPLAY_BITMAP_BYTES];
+            size_t len;
+        } bitmap;
     } data;
 } display_cmd_t;
 
@@ -56,6 +61,8 @@ typedef struct {
     bool uros_connected;
     uint8_t mode;
     int number_value;
+    bool bitmap_valid;
+    uint8_t bitmap[DISPLAY_BITMAP_BYTES];
 } display_state_t;
 
 typedef struct {
@@ -184,7 +191,7 @@ static void display_draw(const display_state_t *state)
 
     if (state->mode == 0) {
         snprintf(line1, sizeof(line1),
-                 "모드1 wifi:%s uros:%s",
+                 "모드1 wifi:%s ur:%s",
                  state->wifi_connected ? "O" : "X",
                  state->uros_connected ? "O" : "X");
         u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE1_Y, line1);
@@ -194,11 +201,19 @@ static void display_draw(const display_state_t *state)
                  "모드2 길이:%u", (unsigned)state->message_len);
         u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE1_Y, line1);
         u8g2_DrawUTF8(&display_u8g2, state->message_scroll_x, DISPLAY_LINE2_Y, message);
-    } else {
+    } else if (state->mode == 2) {
         snprintf(line1, sizeof(line1), "모드3 숫자");
         u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE1_Y, line1);
         snprintf(line1, sizeof(line1), "%d", state->number_value);
         u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE2_Y, line1);
+    } else {
+        if (state->bitmap_valid) {
+            u8g2_DrawXBM(&display_u8g2, 0, 0, 128, 32, state->bitmap);
+        } else {
+            snprintf(line1, sizeof(line1), "모드4");
+            u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE1_Y, line1);
+            u8g2_DrawUTF8(&display_u8g2, state->message_scroll_x, DISPLAY_LINE2_Y, message);
+        }
     }
 
     u8g2_SendBuffer(&display_u8g2);
@@ -260,6 +275,24 @@ void display_set_number(int value)
     display_queue_send(&cmd);
 }
 
+void display_set_bitmap(const uint8_t *data, size_t len)
+{
+    display_cmd_t cmd = {
+        .type = DISPLAY_CMD_SET_BITMAP
+    };
+    size_t copy_len = len;
+    if (copy_len > DISPLAY_BITMAP_BYTES) {
+        copy_len = DISPLAY_BITMAP_BYTES;
+    }
+    if (data && copy_len > 0) {
+        memcpy(cmd.data.bitmap.data, data, copy_len);
+    } else {
+        memset(cmd.data.bitmap.data, 0, sizeof(cmd.data.bitmap.data));
+    }
+    cmd.data.bitmap.len = copy_len;
+    display_queue_send(&cmd);
+}
+
 void display_next_screen(void)
 {
     display_cmd_t cmd = {
@@ -287,6 +320,8 @@ void display_task(void *params)
     state.uros_connected = false;
     state.mode = 0;
     state.number_value = 10;
+    state.bitmap_valid = false;
+    memset(state.bitmap, 0, sizeof(state.bitmap));
     display_update_status_line(&state);
     display_update_message(&state);
 
@@ -318,8 +353,13 @@ void display_task(void *params)
                 state.number_value = cmd.data.number.value;
                 needs_redraw = true;
                 break;
+            case DISPLAY_CMD_SET_BITMAP:
+                memcpy(state.bitmap, cmd.data.bitmap.data, sizeof(state.bitmap));
+                state.bitmap_valid = (cmd.data.bitmap.len >= DISPLAY_BITMAP_BYTES);
+                needs_redraw = true;
+                break;
             case DISPLAY_CMD_NEXT_SCREEN:
-                state.mode = (uint8_t)((state.mode + 1) % 3);
+                state.mode = (uint8_t)((state.mode + 1) % 4);
                 needs_redraw = true;
                 break;
             }
@@ -333,7 +373,7 @@ void display_task(void *params)
             }
             scrolled = true;
         }
-        if (state.mode == 1 && state.message_width > DISPLAY_WIDTH) {
+        if ((state.mode == 1 || state.mode == 3) && state.message_width > DISPLAY_WIDTH) {
             state.message_scroll_x -= DISPLAY_SCROLL_STEP;
             if (state.message_scroll_x < -state.message_width) {
                 state.message_scroll_x = DISPLAY_WIDTH;

@@ -52,6 +52,7 @@ add_executable(bindbot
     src/modes/mode1.c
     src/modes/mode2.c
     src/modes/mode3.c
+    src/modes/mode4.c
     src/tasks/display_task.c
     src/tasks/periph_task.c
     src/tasks/uros.c
@@ -134,6 +135,7 @@ add_executable(rtos_micro_ros_test
     src/modes/mode1.c
     src/modes/mode2.c
     src/modes/mode3.c
+    src/modes/mode4.c
     src/tasks/periph_task.c
     src/tasks/uros.c
     src/drivers/ssd1306_driver.c
@@ -186,6 +188,7 @@ add_executable(micro_ros_test
     src/modes/mode1.c
     src/modes/mode2.c
     src/modes/mode3.c
+    src/modes/mode4.c
     src/tasks/periph_task.c
     src/tasks/uros.c
     src/drivers/ssd1306_driver.c

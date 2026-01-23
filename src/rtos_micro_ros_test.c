@@ -62,6 +62,12 @@ void display_set_number(int value)
     printf("[display] number %d\n", value);
 }
 
+void display_set_bitmap(const uint8_t *data, size_t len)
+{
+    printf("[display] bitmap %u bytes\n", (unsigned)len);
+    (void)data;
+}
+
 void display_next_screen(void)
 {
     printf("[display] next screen\n");

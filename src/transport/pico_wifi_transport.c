@@ -194,10 +194,18 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, co
                 if (success)
                 {
                     params->packets_received++;
-                    // Only log first few packets or errors
                     if (params->packets_received <= 10)
                     {
                         DEBUG_PRINTF("[DEBUG] UDP RX: %u bytes from %s:%u\n", total_len, ipaddr_ntoa(addr), port);
+                    }
+                    if (params->packets_received % 100 == 0)
+                    {
+                        DEBUG_PRINTF("[STATS] RX:%lu TX:%lu Dropped(full:%lu large:%lu wrong:%lu)\n",
+                                     params->packets_received,
+                                     params->packets_sent,
+                                     params->packets_dropped_full,
+                                     params->packets_dropped_too_large,
+                                     params->packets_dropped_wrong_source);
                     }
                 }
                 else

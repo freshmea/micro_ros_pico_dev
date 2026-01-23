@@ -217,6 +217,7 @@ bool buzzer_is_queue_full(PassiveBuzzerManager *manager)
 
 void buzzer_play_beep(PassiveBuzzerManager *manager, int frequency, int duration)
 {
+    buzzer_stop(manager);
     buzzer_add_note(manager, frequency, duration);
 }
 
