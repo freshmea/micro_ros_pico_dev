@@ -9,9 +9,14 @@
 // Returns 0 on success, non-zero on failure
 int pico_wifi_connect(void)
 {
-    if (cyw43_arch_init())
-    {
-        return -1;
+    static bool cyw43_initialized = false;
+
+    if (!cyw43_initialized) {
+        if (cyw43_arch_init())
+        {
+            return -1;
+        }
+        cyw43_initialized = true;
     }
 
     cyw43_arch_enable_sta_mode();

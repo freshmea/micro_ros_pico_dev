@@ -26,6 +26,7 @@ typedef struct {
             char ssid[DISPLAY_SSID_MAX + 1];
             char ip[DISPLAY_IP_MAX + 1];
             bool connected;
+            bool uros_connected;
         } status;
         struct {
             char message[DISPLAY_MESSAGE_MAX + 1];
@@ -44,6 +45,7 @@ typedef struct {
     int16_t message_width;
     int16_t message_scroll_x;
     bool wifi_connected;
+    bool uros_connected;
     uint8_t screen_index;
 } display_state_t;
 
@@ -173,7 +175,9 @@ static void display_draw(const display_state_t *state)
 
     if (state->screen_index == 0) {
         snprintf(line1, sizeof(line1),
-                 "화면1 wifi:%s", state->wifi_connected ? "O" : "X");
+                 "화면1 wifi:%s ur:%s",
+                 state->wifi_connected ? "O" : "X",
+                 state->uros_connected ? "O" : "X");
         u8g2_DrawUTF8(&display_u8g2, 0, DISPLAY_LINE1_Y, line1);
         u8g2_DrawUTF8(&display_u8g2, state->status_scroll_x, DISPLAY_LINE2_Y, state->status_line);
     } else {
@@ -194,7 +198,7 @@ static void display_queue_send(const display_cmd_t *cmd)
     xQueueSend(display_queue, cmd, 0);
 }
 
-void display_set_status(const char *ssid, bool connected, const char *ip)
+void display_set_status(const char *ssid, bool connected, const char *ip, bool uros_connected)
 {
     display_cmd_t cmd = {
         .type = DISPLAY_CMD_SET_STATUS
@@ -202,6 +206,7 @@ void display_set_status(const char *ssid, bool connected, const char *ip)
     snprintf(cmd.data.status.ssid, sizeof(cmd.data.status.ssid), "%s", ssid ? ssid : "");
     snprintf(cmd.data.status.ip, sizeof(cmd.data.status.ip), "%s", ip ? ip : "0.0.0.0");
     cmd.data.status.connected = connected;
+    cmd.data.status.uros_connected = uros_connected;
     display_queue_send(&cmd);
 }
 
@@ -247,6 +252,7 @@ void display_task(void *params)
     snprintf(state.ssid, sizeof(state.ssid), "%s", WIFI_SSID);
     snprintf(state.ip, sizeof(state.ip), "0.0.0.0");
     state.wifi_connected = false;
+    state.uros_connected = false;
     state.screen_index = 0;
     display_update_status_line(&state);
     display_update_message(&state);
@@ -262,6 +268,7 @@ void display_task(void *params)
                 snprintf(state.ssid, sizeof(state.ssid), "%s", cmd.data.status.ssid);
                 snprintf(state.ip, sizeof(state.ip), "%s", cmd.data.status.ip);
                 state.wifi_connected = cmd.data.status.connected;
+                state.uros_connected = cmd.data.status.uros_connected;
                 display_update_status_line(&state);
                 needs_redraw = true;
                 break;

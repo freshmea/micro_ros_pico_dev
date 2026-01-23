@@ -39,6 +39,11 @@ static rcl_subscription_t display_subscriber;
 static std_msgs__msg__String msg_display;
 static char display_msg_buf[DISPLAY_MESSAGE_MAX + 1];
 
+static bool wifi_connected = false;
+static bool uros_connected = false;
+static bool uros_running = false;
+static char wifi_ip_buf[16] = "0.0.0.0";
+
 // touch_state_publisher 관련 변수
 static rcl_publisher_t touch_state_publisher;
 static rcl_timer_t touch_timer;
@@ -49,8 +54,14 @@ static void touch_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
     (void)last_call_time;
     if (timer != NULL)
     {
+        if (!uros_running) {
+            return;
+        }
         touch_state_msg.data = touch_sensor_is_held(&touch, 0);
-        RCSOFTCHECK(rcl_publish(&touch_state_publisher, &touch_state_msg, NULL));
+        rcl_ret_t pub_ret = rcl_publish(&touch_state_publisher, &touch_state_msg, NULL);
+        if (pub_ret != RCL_RET_OK) {
+            DEBUG_PRINTF("[uros] touch publish failed: %d\n", (int)pub_ret);
+        }
     }
 }
 
@@ -94,29 +105,46 @@ void uros_task(void *params)
 {
     (void)params;
 
-    if (uros_main_init() != 0) {
-        vTaskDelete(NULL);
-    }
+    const TickType_t retry_delay = pdMS_TO_TICKS(5000);
 
-    uros_main_run();
-    uros_main_cleanup();
-    vTaskDelete(NULL);
+    while (true) {
+        DEBUG_PRINTF("[uros] init start\n");
+        if (uros_main_init() == 0) {
+            DEBUG_PRINTF("[uros] init ok, run loop\n");
+            uros_main_run();
+            DEBUG_PRINTF("[uros] run loop exited, cleanup\n");
+            uros_main_cleanup();
+            DEBUG_PRINTF("[uros] cleanup done\n");
+        }
+        DEBUG_PRINTF("[uros] init/run failed, retry in 5s\n");
+        vTaskDelay(retry_delay);
+    }
 }
 
 int uros_main_init(void) {
 
+    uros_running = false;
+    DEBUG_PRINTF("[uros] wifi connect start\n");
     if (pico_wifi_connect() != 0) {
-        display_set_status(WIFI_SSID, false, "0.0.0.0");
+        wifi_connected = false;
+        uros_connected = false;
+        snprintf(wifi_ip_buf, sizeof(wifi_ip_buf), "0.0.0.0");
+        display_set_status(WIFI_SSID, wifi_connected, wifi_ip_buf, uros_connected);
+        DEBUG_PRINTF("[uros] wifi connect failed\n");
         return -1;
     }
-    char ip_buf[16] = "0.0.0.0";
+    DEBUG_PRINTF("[uros] wifi connect ok\n");
+    wifi_connected = true;
+    snprintf(wifi_ip_buf, sizeof(wifi_ip_buf), "0.0.0.0");
     cyw43_arch_lwip_begin();
     if (netif_default) {
-        snprintf(ip_buf, sizeof(ip_buf), "%s", ip4addr_ntoa(netif_ip4_addr(netif_default)));
+        snprintf(wifi_ip_buf, sizeof(wifi_ip_buf), "%s", ip4addr_ntoa(netif_ip4_addr(netif_default)));
     }
     cyw43_arch_lwip_end();
-    display_set_status(WIFI_SSID, true, ip_buf);
+    uros_connected = false;
+    display_set_status(WIFI_SSID, wifi_connected, wifi_ip_buf, uros_connected);
 
+    DEBUG_PRINTF("[uros] set transport\n");
     rmw_uros_set_custom_transport(
         false, // must be false for UDP
         NULL,
@@ -130,12 +158,13 @@ int uros_main_init(void) {
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
 
     // Wait for agent ping with shorter timeouts but more attempts (from main.c)
-    const int timeout_ms = 200;
-    const uint8_t attempts = 50;
+    const int timeout_ms = AGENT_PING_TIMEOUT_MS;
+    const uint8_t attempts = AGENT_PING_ATTEMPTS;
     rcl_ret_t ret = RCL_RET_ERROR;
     uint8_t blink_led = 1;
 
     for (int loop = 0; loop < attempts; loop++) {
+        DEBUG_PRINTF("[uros] ping agent attempt %d/%d\n", loop + 1, attempts);
         ret = rmw_uros_ping_agent(timeout_ms, 1);
 
         // Make sure WiFi/lwIP driver progresses even while waiting
@@ -154,12 +183,20 @@ int uros_main_init(void) {
     if (ret != RCL_RET_OK) {
         // Unreachable agent.
         cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
+        uros_connected = false;
+        display_set_status(WIFI_SSID, wifi_connected, wifi_ip_buf, uros_connected);
+        DEBUG_PRINTF("[uros] ping agent failed\n");
         return -1;
     }
 
-    rclc_support_init(&support, 0, NULL, &allocator);
-    rclc_node_init_default(&node, "picow_node", "", &support);
+    uros_connected = true;
+    display_set_status(WIFI_SSID, wifi_connected, wifi_ip_buf, uros_connected);
+    DEBUG_PRINTF("[uros] ping agent ok, init rcl\n");
 
+    rclc_support_init(&support, 0, NULL, &allocator);
+    rmw_uros_set_context_entity_destroy_session_timeout(
+        rcl_context_get_rmw_context(&support.context), 0);
+    rclc_node_init_default(&node, ROS_NODE_NAME, ROS_NAMESPACE, &support);
 
     RCCHECK(rclc_publisher_init_default(
         &touch_state_publisher,
@@ -220,17 +257,35 @@ int uros_main_init(void) {
         ON_NEW_DATA);
 
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
+    uros_running = true;
+    DEBUG_PRINTF("[uros] init done\n");
 
     return 0;
 }
 
 void uros_main_run(void) {
+    const TickType_t ping_interval = pdMS_TO_TICKS(5000);
+    TickType_t last_ping = xTaskGetTickCount();
+
     while (true) {
         rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
 
         // Make sure WiFi/lwIP driver progresses even while waiting
         cyw43_arch_poll();
         vTaskDelay(pdMS_TO_TICKS(1));
+
+        TickType_t now = xTaskGetTickCount();
+        if ((now - last_ping) >= ping_interval) {
+            last_ping = now;
+            if (rmw_uros_ping_agent(AGENT_PING_TIMEOUT_MS, 1) != RCL_RET_OK) {
+                uros_connected = false;
+                display_set_status(WIFI_SSID, wifi_connected, wifi_ip_buf, uros_connected);
+                DEBUG_PRINTF("[uros] ping lost, exit run loop\n");
+                uros_running = false;
+                RCSOFTCHECK(rcl_timer_cancel(&touch_timer));
+                break;
+            }
+        }
     }
 }
 
@@ -241,12 +296,24 @@ void uros_main_spin_once(void) {
 }
 
 void uros_main_cleanup(void) {
+    uros_running = false;
+    DEBUG_PRINTF("[uros] cleanup: executor_fini\n");
+    RCSOFTCHECK(rclc_executor_fini(&executor));
+    DEBUG_PRINTF("[uros] cleanup: timer_fini\n");
     RCSOFTCHECK(rcl_timer_fini(&touch_timer));
+    DEBUG_PRINTF("[uros] cleanup: publisher_fini\n");
     RCSOFTCHECK(rcl_publisher_fini(&touch_state_publisher, &node));
-    rosidl_runtime_c__String__fini(&msg_display.data);
+    DEBUG_PRINTF("[uros] cleanup: string_reset\n");
+    msg_display.data.size = 0;
+    DEBUG_PRINTF("[uros] cleanup: display_sub_fini\n");
     RCSOFTCHECK(rcl_subscription_fini(&display_subscriber, &node));
+    DEBUG_PRINTF("[uros] cleanup: servo2_sub_fini\n");
     RCSOFTCHECK(rcl_subscription_fini(&servo_subscriber2, &node));
+    DEBUG_PRINTF("[uros] cleanup: servo_sub_fini\n");
     RCSOFTCHECK(rcl_subscription_fini(&servo_subscriber, &node));
+    DEBUG_PRINTF("[uros] cleanup: node_fini\n");
     RCSOFTCHECK(rcl_node_fini(&node));
-    cyw43_arch_deinit();
+    DEBUG_PRINTF("[uros] cleanup: support_fini\n");
+    RCSOFTCHECK(rclc_support_fini(&support));
+    DEBUG_PRINTF("[uros] cleanup: done\n");
 }

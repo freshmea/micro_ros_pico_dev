@@ -19,9 +19,13 @@ PassiveBuzzerManager buzzer;
 TouchSensorManager touch;
 SSD1306_t ssd1306;
 
-void display_set_status(const char *ssid, bool connected, const char *ip)
+void display_set_status(const char *ssid, bool connected, const char *ip, bool uros_connected)
 {
-    printf("[display] %s %s %s\n", connected ? "OK" : "NO", ssid ? ssid : "", ip ? ip : "");
+    printf("[display] %s %s %s uros:%s\n",
+           connected ? "OK" : "NO",
+           ssid ? ssid : "",
+           ip ? ip : "",
+           uros_connected ? "OK" : "NO");
 }
 
 void display_set_hello(const char *text)
