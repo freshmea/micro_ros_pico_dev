@@ -362,3 +362,9 @@ sudo picotool load bindbot.uf2 -f
   - docker run 시 PICO_SDK_PATH=/pico-sdk 필요
 - micro-ros-agent 문제 정리
   - snap 설치본이 아닌 **ROS2 humble 환경에서 빌드한 agent** 사용 시 문제 해결됨
+- touch 센서 토픽 확장 및 테스트 개선
+  - touch_1/2/3 state + beep_count 퍼블리셔 추가
+  - beep_count 0.5초 간격 증가 및 릴리즈 시 0으로 리셋
+  - beep_count 증가 이벤트는 RTOS 큐로 전달해 버저 재생
+  - test_touch.py 화면 갱신 0.5초 주기 제한, 로그 출력 제거
+- display_bitmap 구독 복구 (픽셀 단위 수신)
