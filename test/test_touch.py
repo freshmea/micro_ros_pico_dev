@@ -13,7 +13,6 @@ Hardware:
 Topics per sensor:
     - /touch_X/state (Bool): Touch state (pressed/released)
     - /touch_X/beep_count (UInt8): Number of beeps during touch
-    - /touch_X/duration (UInt64): Duration of touch in milliseconds
 
 Auto-beep: Each touch triggers a 1000Hz, 100ms beep
 """
@@ -23,7 +22,7 @@ import time
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
-from std_msgs.msg import Bool, UInt8, UInt64
+from std_msgs.msg import Bool, UInt8
 
 qos = QoSProfile(
     depth=5,
@@ -38,12 +37,12 @@ class TouchSensorMonitor(Node):
         # State tracking
         self.touch_states = [False, False, False]
         self.beep_counts = [0, 0, 0]
-        self.durations = [0, 0, 0]
 
         # Subscribe to all 3 touch sensors
         self.state_subscribers = []
         self.beep_subscribers = []
-        self.duration_subscribers = []
+
+        self.last_status_ts = 0.0
 
         for i in range(1, 4):  # 1, 2, 3
             # State subscriber
@@ -66,15 +65,6 @@ class TouchSensorMonitor(Node):
                 )
             )
 
-            # Duration subscriber
-            self.duration_subscribers.append(
-                self.create_subscription(
-                    UInt64,
-                    f'/touch_{i}/duration',
-                    lambda msg, idx=i-1: self.duration_callback(msg, idx),
-                    qos
-                )
-            )
 
         self.get_logger().info('Touch Sensor Monitor initialized')
         self.get_logger().info('Monitoring 3 touch sensors on GP18, GP19, GP20')
@@ -83,26 +73,20 @@ class TouchSensorMonitor(Node):
     def state_callback(self, msg, sensor_idx):
         """Handle touch state changes"""
         self.touch_states[sensor_idx] = msg.data
-
-        if msg.data:
-            self.get_logger().info(f'🔴 Touch {sensor_idx+1} PRESSED (GP{18+sensor_idx})')
-        else:
-            self.get_logger().info(f'⚪ Touch {sensor_idx+1} RELEASED (GP{18+sensor_idx})')
-
         self.print_status()
 
     def beep_callback(self, msg, sensor_idx):
         """Handle beep count updates"""
         self.beep_counts[sensor_idx] = msg.data
-        self.get_logger().info(f'🔊 Touch {sensor_idx+1} - Beep Count: {msg.data}')
-
-    def duration_callback(self, msg, sensor_idx):
-        """Handle duration updates"""
-        self.durations[sensor_idx] = msg.data
-        self.get_logger().info(f'⏱️  Touch {sensor_idx+1} - Duration: {msg.data}ms')
+        self.print_status()
 
     def print_status(self):
         """Print current status of all sensors"""
+        now = time.time()
+        if now - self.last_status_ts < 0.5:
+            return
+        self.last_status_ts = now
+
         status_str = "\n" + "="*60 + "\n"
         status_str += "Touch Sensor Status:\n"
         status_str += "="*60 + "\n"
@@ -111,7 +95,7 @@ class TouchSensorMonitor(Node):
             state_icon = "🔴 PRESSED " if self.touch_states[i] else "⚪ Released"
             status_str += f"Touch {i+1} (GP{18+i}): {state_icon} | "
             status_str += f"Beeps: {self.beep_counts[i]:3d} | "
-            status_str += f"Duration: {self.durations[i]:6d}ms\n"
+            status_str += "\n"
 
         status_str += "="*60
         print(status_str)
@@ -134,12 +118,10 @@ def main(args=None):
         print("  • Auto-beep on touch (1000Hz, 100ms)")
         print("  • Real-time state monitoring")
         print("  • Beep count tracking")
-        print("  • Touch duration measurement")
         print()
         print("Topics:")
         print("  • /touch_X/state - Touch pressed/released")
         print("  • /touch_X/beep_count - Number of beeps")
-        print("  • /touch_X/duration - Touch duration (ms)")
         print()
         print("Press Ctrl+C to exit")
         print("="*60 + "\n")

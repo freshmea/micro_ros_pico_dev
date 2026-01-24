@@ -49,6 +49,7 @@
 #define SERVO_PIN 2       // GP2: 서보 제어 PWM 출력
 #define SERVO_PIN2 4      // GP4: 두번째 서보 제어 PWM 출력
 #define BUZZER_PIN 16    // GP16: 수동 버저 출력
+#define TOUCH_BEEP_INTERVAL_MS 500 // Beep count increment interval while held (ms)
 #define WS2812_PIN 8     // GP8: WS2812 데이터 핀
 #define WS2812_LED_COUNT 4
 #define TOUCH_SENSOR_COUNT 3

@@ -13,6 +13,24 @@
 - pico-examples : pico-examples-1.6.0
 - pico sdk 와 pico-examples 는 pico 1.6.0 버전으로 설치
 
+## micro-ros-agent 설치
+
+- wsl2 에서 아래 명령어로 설치
+
+```bash
+sudo apt update
+mkdir -p ~/microros_agent_ws/src
+cd ~/microros_agent_ws/src
+git clone -b humble https://github.com/micro-ROS/micro-ros-agent.git
+cd ..
+source /opt/ros/humble/setup.bash
+rosdep update
+rosdep install --from-paths src --ignore-src -y
+colcon build
+source install/local_setup.bash
+echo 'source ~/microros_agent_ws/install/local_setup.bash' >> ~/.bashrc
+```
+
 ## build 환경 설정
 
 - wsl2 에서 아래 명령어로 툴체인 설치
@@ -69,8 +87,8 @@ sudo picotool load bindbot.uf2 -f
 ```
 
 - 공유기 비번 70C05#7P97
-- `micro-ros-agent udp4 --port 8888 -v 4` 로 agent 실행(udp 통신)
-- `micro-ros-agent serial --dev /dev/ttyACM0 -v 4` 로 agent 실행(시리얼 통신)
+- `ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 -v4` 로 agent 실행(udp 통신)
+- `ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyACM0 -v4` 로 agent 실행(시리얼 통신)
 - pico 보드에 전원 연결 후 VsCode 의 직렬 모니터 로 로그 확인
 
 ## 2026_01_08
@@ -333,6 +351,7 @@ sudo picotool load bindbot.uf2 -f
 
 ---
 
+- subscription 을 4개 이상 사용할때 pico 에서 토픽 매칭이 불안정한 문제가 있음
 - micro-ROS 연결 문제 디버깅 및 원인 정리
   - agent 재시작 없이 재연결되도록 Pico 측 자동 재접속 로직 추가(수신 타임아웃 기반)
   - 토픽 4개 이상에서 매칭 불안정 → QoS depth=10 명시 적용

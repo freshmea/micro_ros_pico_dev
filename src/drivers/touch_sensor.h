@@ -5,6 +5,14 @@
 #include <stdbool.h>
 #include "pico/stdlib.h"
 #include "config/project_config.h"
+#include "FreeRTOS.h"
+#include "queue.h"
+
+typedef struct
+{
+    uint8_t index;
+    uint8_t count;
+} TouchBeepEvent;
 
 typedef struct
 {
@@ -27,6 +35,12 @@ typedef struct
  * @param manager Pointer to TouchSensorManager instance
  */
 void touch_sensor_init(TouchSensorManager *manager);
+
+/**
+ * @brief Set queue to notify on beep count increments
+ * @param queue FreeRTOS queue handle for TouchBeepEvent
+ */
+void touch_sensor_set_beep_queue(QueueHandle_t queue);
 
 /**
  * @brief Update all touch sensors state

@@ -1,6 +1,9 @@
 #include "touch_sensor.h"
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
+#include "FreeRTOS.h"
+#include "queue.h"
+
 
 // Touch sensor pin mapping
 static const uint8_t touch_pins[TOUCH_SENSOR_COUNT] = {
@@ -8,6 +11,13 @@ static const uint8_t touch_pins[TOUCH_SENSOR_COUNT] = {
     TOUCH_PIN_2,
     TOUCH_PIN_3
 };
+
+static QueueHandle_t touch_beep_queue = NULL;
+
+void touch_sensor_set_beep_queue(QueueHandle_t queue)
+{
+    touch_beep_queue = queue;
+}
 
 void touch_sensor_init(TouchSensorManager *manager)
 {
@@ -48,14 +58,28 @@ void touch_sensor_update(TouchSensorManager *manager, uint64_t currentMillis)
                 sensor->lastBeepCount = 0;
             }
             sensor->duration = currentMillis - sensor->startTime;
+            if (TOUCH_BEEP_INTERVAL_MS > 0) {
+                uint64_t expected_beeps = sensor->duration / TOUCH_BEEP_INTERVAL_MS;
+                if (expected_beeps > sensor->beepCount) {
+                    sensor->beepCount = (uint8_t)expected_beeps;
+                    if (touch_beep_queue) {
+                        TouchBeepEvent evt = {
+                            .index = (uint8_t)i,
+                            .count = sensor->beepCount
+                        };
+                        xQueueSend(touch_beep_queue, &evt, 0);
+                    }
+                }
+            }
         }
         else
         {
             // Button is released
             if (sensor->lastState)
             {
-                sensor->lastBeepCount = sensor->beepCount;
+                sensor->lastBeepCount = 0;
             }
+            sensor->beepCount = 0;
             sensor->duration = 0;
             sensor->startTime = 0;
         }

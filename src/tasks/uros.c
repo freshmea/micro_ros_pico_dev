@@ -6,6 +6,7 @@
 #include <std_msgs/msg/int32.h>
 #include <std_msgs/msg/string.h>
 #include <std_msgs/msg/u_int8_multi_array.h>
+#include <std_msgs/msg/u_int8.h>
 
 #include <rosidl_runtime_c/string_functions.h>
 #include <rosidl_runtime_c/primitives_sequence_functions.h>
@@ -40,6 +41,9 @@ static std_msgs__msg__Int32 msg_servo2;
 static rcl_subscription_t display_subscriber;
 static std_msgs__msg__String msg_display;
 static char display_msg_buf[DISPLAY_MESSAGE_MAX + 1];
+static rcl_subscription_t display_bitmap_subscriber;
+static std_msgs__msg__UInt8MultiArray msg_display_bitmap;
+static uint8_t display_bitmap_buf[DISPLAY_BITMAP_BYTES];
 static rcl_subscription_t ws2812_subscriber;
 static std_msgs__msg__UInt8MultiArray msg_ws2812;
 static uint8_t ws2812_cmd_buf[4];
@@ -51,8 +55,18 @@ static char wifi_ip_buf[16] = "0.0.0.0";
 
 // touch_state_publisher 관련 변수
 static rcl_publisher_t touch_state_publisher;
+static rcl_publisher_t touch_state_publisher2;
+static rcl_publisher_t touch_state_publisher3;
+static rcl_publisher_t touch_beep_publisher;
+static rcl_publisher_t touch_beep_publisher2;
+static rcl_publisher_t touch_beep_publisher3;
 static rcl_timer_t touch_timer;
 static std_msgs__msg__Bool touch_state_msg;
+static std_msgs__msg__Bool touch_state_msg2;
+static std_msgs__msg__Bool touch_state_msg3;
+static std_msgs__msg__UInt8 touch_beep_msg;
+static std_msgs__msg__UInt8 touch_beep_msg2;
+static std_msgs__msg__UInt8 touch_beep_msg3;
 
 static void touch_timer_callback(rcl_timer_t *timer, int64_t last_call_time) {
     (void)last_call_time;
@@ -64,6 +78,36 @@ static void touch_timer_callback(rcl_timer_t *timer, int64_t last_call_time) {
         rcl_ret_t pub_ret = rcl_publish(&touch_state_publisher, &touch_state_msg, NULL);
         if (pub_ret != RCL_RET_OK) {
             DEBUG_PRINTF("[uros] touch publish failed: %d\n", (int)pub_ret);
+        }
+
+        touch_state_msg2.data = touch_sensor_is_held(&touch, 1);
+        pub_ret = rcl_publish(&touch_state_publisher2, &touch_state_msg2, NULL);
+        if (pub_ret != RCL_RET_OK) {
+            DEBUG_PRINTF("[uros] touch2 publish failed: %d\n", (int)pub_ret);
+        }
+
+        touch_state_msg3.data = touch_sensor_is_held(&touch, 2);
+        pub_ret = rcl_publish(&touch_state_publisher3, &touch_state_msg3, NULL);
+        if (pub_ret != RCL_RET_OK) {
+            DEBUG_PRINTF("[uros] touch3 publish failed: %d\n", (int)pub_ret);
+        }
+
+        touch_beep_msg.data = touch_sensor_get_beep_count(&touch, 0);
+        pub_ret = rcl_publish(&touch_beep_publisher, &touch_beep_msg, NULL);
+        if (pub_ret != RCL_RET_OK) {
+            DEBUG_PRINTF("[uros] touch1 beep publish failed: %d\n", (int)pub_ret);
+        }
+
+        touch_beep_msg2.data = touch_sensor_get_beep_count(&touch, 1);
+        pub_ret = rcl_publish(&touch_beep_publisher2, &touch_beep_msg2, NULL);
+        if (pub_ret != RCL_RET_OK) {
+            DEBUG_PRINTF("[uros] touch2 beep publish failed: %d\n", (int)pub_ret);
+        }
+
+        touch_beep_msg3.data = touch_sensor_get_beep_count(&touch, 2);
+        pub_ret = rcl_publish(&touch_beep_publisher3, &touch_beep_msg3, NULL);
+        if (pub_ret != RCL_RET_OK) {
+            DEBUG_PRINTF("[uros] touch3 beep publish failed: %d\n", (int)pub_ret);
         }
     }
 }
@@ -93,6 +137,11 @@ static void servo2_callback(const void *msgin) {
 static void display_message_callback(const void *msgin) {
     const std_msgs__msg__String *msg = (const std_msgs__msg__String *)msgin;
     display_set_message(msg->data.data, msg->data.size);
+}
+
+static void display_bitmap_callback(const void *msgin) {
+    const std_msgs__msg__UInt8MultiArray *msg = (const std_msgs__msg__UInt8MultiArray *)msgin;
+    display_set_bitmap(msg->data.data, msg->data.size);
 }
 
 static void ws2812_callback(const void *msgin)
@@ -206,6 +255,16 @@ int uros_main_init(void) {
 
     RCCHECK(rclc_publisher_init(&touch_state_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
                                 "touch_1/state", &qos_depth10));
+    RCCHECK(rclc_publisher_init(&touch_state_publisher2, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+                                "touch_2/state", &qos_depth10));
+    RCCHECK(rclc_publisher_init(&touch_state_publisher3, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+                                "touch_3/state", &qos_depth10));
+    RCCHECK(rclc_publisher_init(&touch_beep_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8),
+                                "touch_1/beep_count", &qos_depth10));
+    RCCHECK(rclc_publisher_init(&touch_beep_publisher2, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8),
+                                "touch_2/beep_count", &qos_depth10));
+    RCCHECK(rclc_publisher_init(&touch_beep_publisher3, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8),
+                                "touch_3/beep_count", &qos_depth10));
 
     RCCHECK(rclc_timer_init_default2(&touch_timer, &support, RCL_MS_TO_NS(100), touch_timer_callback, true));
 
@@ -217,6 +276,9 @@ int uros_main_init(void) {
     RCCHECK(rclc_subscription_init(&display_subscriber, &node,
                                    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String), "display_message",
                                    &qos_depth10));
+    RCCHECK(rclc_subscription_init(&display_bitmap_subscriber, &node,
+                                   ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8MultiArray),
+                                   "display_bitmap", &qos_depth10));
     RCCHECK(rclc_subscription_init(&ws2812_subscriber, &node,
                                    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8MultiArray),
                                    "ws2812_pixel", &qos_depth10));
@@ -234,8 +296,14 @@ int uros_main_init(void) {
     // Allow deserialization into the full fixed buffer
     msg_ws2812.data.size = msg_ws2812.data.capacity;
 
-    // Executor 초기화 및 핸들러 5 추가(Subscriber 4, timer 1, publisher 1)
-    rcl_ret_t exec_rc = rclc_executor_init(&executor, &support.context, 5, &allocator);
+    // Display bitmap 버퍼 초기화
+    rosidl_runtime_c__uint8__Sequence__init(&msg_display_bitmap.data, 0);
+    msg_display_bitmap.data.data = display_bitmap_buf;
+    msg_display_bitmap.data.capacity = sizeof(display_bitmap_buf);
+    msg_display_bitmap.data.size = msg_display_bitmap.data.capacity;
+
+    // Executor 초기화 및 핸들러 12 추가(Subscriber 5, timer 1, publisher 6)
+    rcl_ret_t exec_rc = rclc_executor_init(&executor, &support.context, 6, &allocator);
     if (exec_rc != RCL_RET_OK) {
         DEBUG_PRINTF("[uros] executor init failed rc=%d\n", (int)exec_rc);
         return -1;
@@ -260,17 +328,24 @@ int uros_main_init(void) {
         return -1;
     }
 
-        exec_rc =
-            rclc_executor_add_subscription(&executor, &ws2812_subscriber, &msg_ws2812, &ws2812_callback, ON_NEW_DATA);
-        if (exec_rc != RCL_RET_OK) {
-            DEBUG_PRINTF("[uros] executor add ws2812 failed rc=%d\n", (int)exec_rc);
-            return -1;
-        }
-
     exec_rc = rclc_executor_add_subscription(&executor, &display_subscriber, &msg_display,
                                              &display_message_callback, ON_NEW_DATA);
     if (exec_rc != RCL_RET_OK) {
         DEBUG_PRINTF("[uros] executor add display failed rc=%d\n", (int)exec_rc);
+        return -1;
+    }
+
+    exec_rc = rclc_executor_add_subscription(&executor, &display_bitmap_subscriber, &msg_display_bitmap,
+                                             &display_bitmap_callback, ON_NEW_DATA);
+    if (exec_rc != RCL_RET_OK) {
+        DEBUG_PRINTF("[uros] executor add bitmap failed rc=%d\n", (int)exec_rc);
+        return -1;
+    }
+
+    exec_rc =
+        rclc_executor_add_subscription(&executor, &ws2812_subscriber, &msg_ws2812, &ws2812_callback, ON_NEW_DATA);
+    if (exec_rc != RCL_RET_OK) {
+        DEBUG_PRINTF("[uros] executor add ws2812 failed rc=%d\n", (int)exec_rc);
         return -1;
     }
 
@@ -321,11 +396,18 @@ void uros_main_cleanup(void) {
     RCSOFTCHECK(rcl_timer_fini(&touch_timer));
     DEBUG_PRINTF("[uros] cleanup: publisher_fini\n");
     RCSOFTCHECK(rcl_publisher_fini(&touch_state_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&touch_state_publisher2, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&touch_state_publisher3, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&touch_beep_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&touch_beep_publisher2, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&touch_beep_publisher3, &node));
     DEBUG_PRINTF("[uros] cleanup: string_reset\n");
     msg_display.data.size = 0;
+    msg_display_bitmap.data.size = 0;
     msg_ws2812.data.size = 0;
     DEBUG_PRINTF("[uros] cleanup: display_sub_fini\n");
     RCSOFTCHECK(rcl_subscription_fini(&display_subscriber, &node));
+    RCSOFTCHECK(rcl_subscription_fini(&display_bitmap_subscriber, &node));
     RCSOFTCHECK(rcl_subscription_fini(&ws2812_subscriber, &node));
     DEBUG_PRINTF("[uros] cleanup: servo2_sub_fini\n");
     RCSOFTCHECK(rcl_subscription_fini(&servo_subscriber2, &node));

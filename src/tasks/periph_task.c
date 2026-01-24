@@ -24,6 +24,7 @@ typedef struct {
 } ws2812_cmd_t;
 
 static QueueHandle_t ws2812_cmd_queue = NULL;
+static QueueHandle_t touch_beep_queue = NULL;
 static bool ws2812_override = false;
 static uint64_t ws2812_override_until_ms = 0;
 
@@ -57,6 +58,9 @@ void periph_task_init(void)
 
     ws2812_cmd_queue = xQueueCreate(4, sizeof(ws2812_cmd_t));
     configASSERT(ws2812_cmd_queue);
+
+    touch_beep_queue = xQueueCreate(8, sizeof(TouchBeepEvent));
+    configASSERT(touch_beep_queue);
 }
 
 static void periph_blink_error(void)
@@ -69,10 +73,10 @@ static void periph_blink_error(void)
 void periph_task(void *params)
 {
     (void)params;
-    uint8_t last_beep_count[TOUCH_SENSOR_COUNT] = {0};
 
     buzzer_init(&buzzer);
     touch_sensor_init(&touch);
+    touch_sensor_set_beep_queue(touch_beep_queue);
 
     if (servo_ctrl_init(SERVO_PIN) != 0) {
         periph_blink_error();
@@ -111,12 +115,9 @@ void periph_task(void *params)
             mode_manager_handle_button(2, now_ms);
         }
 
-        for (int i = 0; i < TOUCH_SENSOR_COUNT; i++) {
-            uint8_t count = touch_sensor_get_beep_count(&touch, i);
-            if (count > last_beep_count[i]) {
-                buzzer_play_beep(&buzzer, 1200, 100);
-                last_beep_count[i] = count;
-            }
+        TouchBeepEvent evt;
+        while (touch_beep_queue && xQueueReceive(touch_beep_queue, &evt, 0) == pdTRUE) {
+            buzzer_play_beep(&buzzer, 1200, 100);
         }
 
         ws2812_cmd_t cmd;
