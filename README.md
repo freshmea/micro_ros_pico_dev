@@ -326,3 +326,20 @@ sudo picotool load bindbot.uf2 -f
 - uros cleanup 디버깅 로그 추가 및 정리 안정화
 - 정적 문자열 버퍼 fini 호출 제거로 크래시 방지
   - shared 구조에서 exclusive 로 따로 irq 설정 변경(wifi-> shared, pwm-> exclusive)
+
+---
+
+## 2026_01_24
+
+---
+
+- micro-ROS 연결 문제 디버깅 및 원인 정리
+  - agent 재시작 없이 재연결되도록 Pico 측 자동 재접속 로직 추가(수신 타임아웃 기반)
+  - 토픽 4개 이상에서 매칭 불안정 → QoS depth=10 명시 적용
+- ws2812 구독 시 수신 버퍼 size 설정 문제 수정(고정 버퍼로 deserialize 가능)
+- micro-ROS static lib 재생성 환경 구축(문제 상황 해결과는 상관 없지만 구독 노드를 확장 하는 방법을 위해 필요)
+  - Docker 기반 library_generation 환경 구성(humble)
+  - pico-sdk 경로 이슈 수정(toolchain.cmake 경로 수정)
+  - docker run 시 PICO_SDK_PATH=/pico-sdk 필요
+- micro-ros-agent 문제 정리
+  - snap 설치본이 아닌 **ROS2 humble 환경에서 빌드한 agent** 사용 시 문제 해결됨

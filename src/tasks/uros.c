@@ -9,6 +9,7 @@
 
 #include <rosidl_runtime_c/string_functions.h>
 #include <rosidl_runtime_c/primitives_sequence_functions.h>
+#include <rmw/qos_profiles.h>
 
 #include "FreeRTOS.h"
 #include "hardware/adc.h"
@@ -200,21 +201,25 @@ int uros_main_init(void) {
     rmw_uros_set_context_entity_destroy_session_timeout(rcl_context_get_rmw_context(&support.context), 0);
     rclc_node_init_default(&node, ROS_NODE_NAME, ROS_NAMESPACE, &support);
 
-    RCCHECK(rclc_publisher_init_default(&touch_state_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
-                                        "touch_1/state"));
+    rmw_qos_profile_t qos_depth10 = rmw_qos_profile_default;
+    qos_depth10.depth = 10;
 
-    RCCHECK(rclc_timer_init_default2(&touch_timer, &support, RCL_MS_TO_NS(10), touch_timer_callback, true));
+    RCCHECK(rclc_publisher_init(&touch_state_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+                                "touch_1/state", &qos_depth10));
 
-    RCCHECK(rclc_subscription_init_default(&servo_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-                                           "servo_angle"));
+    RCCHECK(rclc_timer_init_default2(&touch_timer, &support, RCL_MS_TO_NS(100), touch_timer_callback, true));
 
-    RCCHECK(rclc_subscription_init_default(&servo_subscriber2, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-                                           "servo2_angle"));
-    RCCHECK(rclc_subscription_init_default(&display_subscriber, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String), "display_message"));
-    RCCHECK(rclc_subscription_init_default(&ws2812_subscriber, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8MultiArray),
-                                           "ws2812_pixel"));
+    RCCHECK(rclc_subscription_init(&servo_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+                                   "servo_angle", &qos_depth10));
+
+    RCCHECK(rclc_subscription_init(&servo_subscriber2, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+                                   "servo2_angle", &qos_depth10));
+    RCCHECK(rclc_subscription_init(&display_subscriber, &node,
+                                   ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String), "display_message",
+                                   &qos_depth10));
+    RCCHECK(rclc_subscription_init(&ws2812_subscriber, &node,
+                                   ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8MultiArray),
+                                   "ws2812_pixel", &qos_depth10));
 
     // String 버퍼 초기화
     rosidl_runtime_c__String__init(&msg_display.data);
@@ -255,17 +260,17 @@ int uros_main_init(void) {
         return -1;
     }
 
+        exec_rc =
+            rclc_executor_add_subscription(&executor, &ws2812_subscriber, &msg_ws2812, &ws2812_callback, ON_NEW_DATA);
+        if (exec_rc != RCL_RET_OK) {
+            DEBUG_PRINTF("[uros] executor add ws2812 failed rc=%d\n", (int)exec_rc);
+            return -1;
+        }
+
     exec_rc = rclc_executor_add_subscription(&executor, &display_subscriber, &msg_display,
                                              &display_message_callback, ON_NEW_DATA);
     if (exec_rc != RCL_RET_OK) {
         DEBUG_PRINTF("[uros] executor add display failed rc=%d\n", (int)exec_rc);
-        return -1;
-    }
-
-    exec_rc =
-        rclc_executor_add_subscription(&executor, &ws2812_subscriber, &msg_ws2812, &ws2812_callback, ON_NEW_DATA);
-    if (exec_rc != RCL_RET_OK) {
-        DEBUG_PRINTF("[uros] executor add ws2812 failed rc=%d\n", (int)exec_rc);
         return -1;
     }
 
