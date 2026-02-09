@@ -54,7 +54,8 @@ make -j4
 
 ```bash
 cd ~/pico/micro_ros_pico_dev/external
-cp -a ~/pico/pico-sdk/lib/FreeRTOS-Kernel .
+git clone --recurse-submodules https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+# cp -a ~/pico/pico-sdk/lib/FreeRTOS-Kernel .
 
 export PICO_SDK_PATH=/mnt/c/Users/username/path/to/pico-sdk
 ```
